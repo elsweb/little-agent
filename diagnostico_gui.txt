@@ -1,0 +1,278 @@
+============================================================
+TERMUX GUI DIAGNOSTICO
+============================================================
+
+ARQUIVO:
+/data/data/com.termux/files/usr/lib/python3.14/site-packages/termuxgui/__init__.py
+
+VERSAO PYTHON:
+3.14.6 (main, Jul  5 2026, 10:35:55) [Clang 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 5e96669f0
+
+VERSAO TERMUX GUI:
+7
+
+============================================================
+Connection
+============================================================
+ASSINATURA:
+()
+
+METODOS:
+  checkevent(self) -> termuxgui.event.Event | None
+  close(self)
+  events(self) -> Iterator[termuxgui.event.Event]
+  getversion(self) -> bool
+  islocked(self) -> bool
+  send_msg(self, msg: str | dict)
+  send_read_msg(self, msg: str | dict)
+  toast(self, text: str, long: bool = False)
+  totermux(self)
+  turnscreenon(self)
+
+============================================================
+Activity
+============================================================
+ASSINATURA:
+(connection: termuxgui.connection.Connection, tid: str | None = None, dialog: bool | None = None, pip: bool | None = False, overlay: bool | None = None, lockscreen: bool | None = None, canceloutside: bool = True, intercept: bool = False)
+
+METODOS:
+  finish(self)
+  getconfiguration(self) -> termuxgui.connection.Configuration
+  hidesoftkeyboard(self)
+  interceptbackbutton(self, intercept: bool)
+  keepscreenon(self, on: bool)
+  movetoback(self)
+  requestunlock(self)
+  sendoverlayevents(self, send: bool)
+  setinputmode(self, mode: Literal['resize', 'pan'])
+  setorientation(self, orientation: Literal['behind', 'fullSensor', 'fullUser', 'landscape', 'locked', 'nosensor', 'portrait', 'reverseLandscape', 'reversePortrait', 'sensorLandscape', 'sensorPortrait', 'user', 'userLandscape', 'userPortrait'])
+  setpipmode(self, pip: bool)
+  setpipmodeauto(self, pip: bool)
+  setpipparams(self, num: int, den: int)
+  setposition(self, x: int, y: int)
+  setsecure(self, secure: bool)
+  settaskdescription(self, label: str, img: str)
+  settheme(self, statusbarcolor: int, colorprimary: int, windowbackground: int, textcolor: int, coloraccent: int)
+
+============================================================
+View
+============================================================
+ASSINATURA:
+(activity: termuxgui.activity.Activity, id: int)
+
+METODOS:
+  delete(self)
+  focus(self, forcesoft: bool = False)
+  getdimensions(self) -> List[int]
+  handleevent(self, e: termuxgui.event.Event)
+  sendclickevent(self, send: bool)
+  sendfocuschangeevent(self, send: bool)
+  sendlongclickevent(self, send: bool)
+  sendtouchevent(self, send: bool)
+  setbackgroundcolor(self, color: int)
+  setclickable(self, clickable: bool)
+  setdimensions(self, width: int | str, height: int | str, px: bool = False)
+  setgridlayoutparams(self, row: int, col: int, rowsize: int = 1, colsize: int = 1, alignmentrow: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center', alignmentcol: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center')
+  setheight(self, height: int | str, px: bool = False)
+  setlinearlayoutparams(self, weight: int, position: int | None = None)
+  setmargin(self, margin: int, dir: Literal['top', 'bottom', 'left', 'right'] | None = None)
+  setvisibility(self, vis: Literal[0, 1, 2])
+  setwidth(self, width: int | str, px: bool = False)
+
+============================================================
+TextView
+============================================================
+ASSINATURA:
+(activity: termuxgui.activity.Activity, text: str, parent: termuxgui.view.View | None = None, selectabletext: bool = False, clickablelinks: bool = False, visibility: Literal[0, 1, 2] | None = None)
+
+METODOS:
+  delete(self)
+  focus(self, forcesoft: bool = False)
+  getdimensions(self) -> List[int]
+  gettext(self) -> str
+  handleevent(self, e: termuxgui.event.Event)
+  sendclickevent(self, send: bool)
+  sendfocuschangeevent(self, send: bool)
+  sendlongclickevent(self, send: bool)
+  sendtextevent(self, send: bool)
+  sendtouchevent(self, send: bool)
+  setbackgroundcolor(self, color: int)
+  setclickable(self, clickable: bool)
+  setdimensions(self, width: int | str, height: int | str, px: bool = False)
+  setgravity(self, horizontal: Literal[0, 1, 2], vertical: Literal[0, 1, 2])
+  setgridlayoutparams(self, row: int, col: int, rowsize: int = 1, colsize: int = 1, alignmentrow: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center', alignmentcol: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center')
+  setheight(self, height: int | str, px: bool = False)
+  setlinearlayoutparams(self, weight: int, position: int | None = None)
+  setmargin(self, margin: int, dir: Literal['top', 'bottom', 'left', 'right'] | None = None)
+  settext(self, text: str)
+  settextcolor(self, color: int)
+  settextsize(self, size: int)
+  setvisibility(self, vis: Literal[0, 1, 2])
+  setwidth(self, width: int | str, px: bool = False)
+
+============================================================
+Button
+============================================================
+ASSINATURA:
+(activity: termuxgui.activity.Activity, text: str, parent: termuxgui.view.View | None = None, allcaps: bool = False, visibility: Literal[0, 1, 2] | None = None)
+
+METODOS:
+  delete(self)
+  focus(self, forcesoft: bool = False)
+  getdimensions(self) -> List[int]
+  gettext(self) -> str
+  handleevent(self, e: termuxgui.event.Event)
+  sendclickevent(self, send: bool)
+  sendfocuschangeevent(self, send: bool)
+  sendlongclickevent(self, send: bool)
+  sendtextevent(self, send: bool)
+  sendtouchevent(self, send: bool)
+  setbackgroundcolor(self, color: int)
+  setclickable(self, clickable: bool)
+  setdimensions(self, width: int | str, height: int | str, px: bool = False)
+  setgravity(self, horizontal: Literal[0, 1, 2], vertical: Literal[0, 1, 2])
+  setgridlayoutparams(self, row: int, col: int, rowsize: int = 1, colsize: int = 1, alignmentrow: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center', alignmentcol: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center')
+  setheight(self, height: int | str, px: bool = False)
+  setlinearlayoutparams(self, weight: int, position: int | None = None)
+  setmargin(self, margin: int, dir: Literal['top', 'bottom', 'left', 'right'] | None = None)
+  settext(self, text: str)
+  settextcolor(self, color: int)
+  settextsize(self, size: int)
+  setvisibility(self, vis: Literal[0, 1, 2])
+  setwidth(self, width: int | str, px: bool = False)
+
+============================================================
+LinearLayout
+============================================================
+ASSINATURA:
+(activity: termuxgui.activity.Activity, parent: termuxgui.view.View | None = None, vertical: bool = True, visibility: Literal[0, 1, 2] | None = None)
+
+METODOS:
+  clearchildren(self)
+  delete(self)
+  focus(self, forcesoft: bool = False)
+  getdimensions(self) -> List[int]
+  handleevent(self, e: termuxgui.event.Event)
+  sendclickevent(self, send: bool)
+  sendfocuschangeevent(self, send: bool)
+  sendlongclickevent(self, send: bool)
+  sendtouchevent(self, send: bool)
+  setbackgroundcolor(self, color: int)
+  setclickable(self, clickable: bool)
+  setdimensions(self, width: int | str, height: int | str, px: bool = False)
+  setgridlayoutparams(self, row: int, col: int, rowsize: int = 1, colsize: int = 1, alignmentrow: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center', alignmentcol: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center')
+  setheight(self, height: int | str, px: bool = False)
+  setlinearlayoutparams(self, weight: int, position: int | None = None)
+  setmargin(self, margin: int, dir: Literal['top', 'bottom', 'left', 'right'] | None = None)
+  setvisibility(self, vis: Literal[0, 1, 2])
+  setwidth(self, width: int | str, px: bool = False)
+
+============================================================
+FrameLayout
+============================================================
+ASSINATURA:
+(activity: termuxgui.activity.Activity, parent: termuxgui.view.View | None = None, visibility: Literal[0, 1, 2] | None = None)
+
+METODOS:
+  clearchildren(self)
+  delete(self)
+  focus(self, forcesoft: bool = False)
+  getdimensions(self) -> List[int]
+  handleevent(self, e: termuxgui.event.Event)
+  sendclickevent(self, send: bool)
+  sendfocuschangeevent(self, send: bool)
+  sendlongclickevent(self, send: bool)
+  sendtouchevent(self, send: bool)
+  setbackgroundcolor(self, color: int)
+  setclickable(self, clickable: bool)
+  setdimensions(self, width: int | str, height: int | str, px: bool = False)
+  setgridlayoutparams(self, row: int, col: int, rowsize: int = 1, colsize: int = 1, alignmentrow: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center', alignmentcol: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center')
+  setheight(self, height: int | str, px: bool = False)
+  setlinearlayoutparams(self, weight: int, position: int | None = None)
+  setmargin(self, margin: int, dir: Literal['top', 'bottom', 'left', 'right'] | None = None)
+  setvisibility(self, vis: Literal[0, 1, 2])
+  setwidth(self, width: int | str, px: bool = False)
+
+============================================================
+ImageView
+============================================================
+ASSINATURA:
+(activity: termuxgui.activity.Activity, parent: termuxgui.view.View | None = None, visibility: Literal[0, 1, 2] | None = None)
+
+METODOS:
+  delete(self)
+  focus(self, forcesoft: bool = False)
+  getdimensions(self) -> List[int]
+  handleevent(self, e: termuxgui.event.Event)
+  refresh(self)
+  sendclickevent(self, send: bool)
+  sendfocuschangeevent(self, send: bool)
+  sendlongclickevent(self, send: bool)
+  sendtouchevent(self, send: bool)
+  setbackgroundcolor(self, color: int)
+  setbuffer(self, b: termuxgui.buffer.Buffer)
+  setclickable(self, clickable: bool)
+  setdimensions(self, width: int | str, height: int | str, px: bool = False)
+  setgridlayoutparams(self, row: int, col: int, rowsize: int = 1, colsize: int = 1, alignmentrow: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center', alignmentcol: Literal['top', 'bottom', 'left', 'right', 'center', 'baseline', 'fill'] = 'center')
+  setheight(self, height: int | str, px: bool = False)
+  setimage(self, img: bytes)
+  setlinearlayoutparams(self, weight: int, position: int | None = None)
+  setmargin(self, margin: int, dir: Literal['top', 'bottom', 'left', 'right'] | None = None)
+  setvisibility(self, vis: Literal[0, 1, 2])
+  setwidth(self, width: int | str, px: bool = False)
+
+============================================================
+Event
+============================================================
+ASSINATURA:
+(ev: dict)
+
+METODOS:
+
+============================================================
+EVENTOS
+============================================================
+airplane = airplane
+back = back
+click = click
+config = config
+create = create
+destroy = destroy
+focusChange = focusChange
+itemselected = itemselected
+key = key
+locale = locale
+longClick = longClick
+notification = notification
+notificationDismissed = notificationDismissed
+notificationaction = notificationaction
+overlayScale = overlayScale
+overlaytouch = overlayTouch
+pause = pause
+pipchanged = pipchanged
+refresh = refresh
+remoteclick = remoteclick
+resume = resume
+screen_off = screen_off
+screenon = screen_on
+selected = selected
+start = start
+stop = stop
+text = text
+timezone = timezone
+touch = touch
+touch_cancel = cancel
+touch_down = down
+touch_move = move
+touch_pointer_down = pointer_down
+touch_pointer_up = pointer_up
+touch_up = up
+userleavehint = UserLeaveHint
+webviewConsoleMessage = webviewConsoleMessage
+webviewDestroyed = webviewDestroyed
+webviewError = webviewError
+webviewHTTPError = webviewHTTPError
+webviewNavigation = webviewNavigation
+webviewProgress = webviewProgress
+
+FIM
