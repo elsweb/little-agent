@@ -76,6 +76,11 @@ def encontrar_camera_frontal():
 
         return None
 
+
+# ============================================================
+# TIRAR FOTO
+# ============================================================
+
 def tirar_foto():
 
     print()
@@ -100,8 +105,15 @@ def tirar_foto():
 
         return False
 
-    print("CAMERA FRONTAL:", camera)
-    print("ARQUIVO:", arquivo)
+    print(
+        "CAMERA FRONTAL:",
+        camera
+    )
+
+    print(
+        "ARQUIVO:",
+        arquivo
+    )
 
     try:
 
@@ -118,13 +130,20 @@ def tirar_foto():
             timeout=15
         )
 
-        print("RETORNO:", resultado.returncode)
+        print(
+            "RETORNO:",
+            resultado.returncode
+        )
 
         print("STDOUT:")
         print(resultado.stdout)
 
         print("STDERR:")
         print(resultado.stderr)
+
+        # ----------------------------------------
+        # FOTO EXISTE
+        # ----------------------------------------
 
         if os.path.exists(arquivo):
 
@@ -137,9 +156,21 @@ def tirar_foto():
             print("🤳 FOTO FRONTAL CRIADA")
             print("========================================")
 
-            print("CAMERA:", camera)
-            print("ARQUIVO:", arquivo)
-            print("TAMANHO:", tamanho, "bytes")
+            print(
+                "CAMERA:",
+                camera
+            )
+
+            print(
+                "ARQUIVO:",
+                arquivo
+            )
+
+            print(
+                "TAMANHO:",
+                tamanho,
+                "bytes"
+            )
 
             return True
 
@@ -150,9 +181,8 @@ def tirar_foto():
 
     except subprocess.TimeoutExpired:
 
-        print(
-            "❌ TIMEOUT DA CAMERA"
-        )
+        print()
+        print("❌ TIMEOUT DA CAMERA")
 
         return False
 
@@ -187,11 +217,21 @@ def enviar_comando(webview, comando):
     print("# PYTHON -> JAVASCRIPT")
     print("########################################")
 
-    print("EVENTO:", comando)
+    print(
+        "EVENTO:",
+        comando
+    )
 
-    js = "window.robotEvent(" + repr(comando) + ");"
+    js = (
+        "window.robotEvent("
+        + repr(comando)
+        + ");"
+    )
 
-    print("JS:", js)
+    print(
+        "JS:",
+        js
+    )
 
     try:
 
@@ -199,19 +239,106 @@ def enviar_comando(webview, comando):
             js
         )
 
-        print("RESULTADO JS:", resultado)
+        print(
+            "RESULTADO JS:",
+            resultado
+        )
 
-        print("JS ENVIADO COM SUCESSO")
+        print(
+            "JS ENVIADO COM SUCESSO"
+        )
 
         return True
 
     except Exception as e:
 
-        print("ERRO AO EXECUTAR JAVASCRIPT:")
+        print(
+            "ERRO AO EXECUTAR JAVASCRIPT:"
+        )
 
         print(e)
 
         return False
+
+
+# ============================================================
+# FOTO DO ROBÔ
+# ============================================================
+
+def executar_foto(webview):
+
+    print()
+    print("########################################")
+    print("# FOTO DO ROBÔ")
+    print("########################################")
+
+    # ----------------------------------------
+    # FECHAR OLHOS
+    # ----------------------------------------
+
+    print(
+        "👁️ FECHANDO OLHOS..."
+    )
+
+    enviar_comando(
+        webview,
+        "CLOSE_EYES"
+    )
+
+    # ----------------------------------------
+    # DAR TEMPO PARA A INTERFACE
+    # ATUALIZAR OS OLHOS
+    # ----------------------------------------
+
+    time.sleep(
+        0.10
+    )
+
+    # ----------------------------------------
+    # FOTO
+    # ----------------------------------------
+
+    print(
+        "📷 INICIANDO FOTO..."
+    )
+
+    foto_ok = tirar_foto()
+
+    # ----------------------------------------
+    # FOTO TERMINOU
+    # ----------------------------------------
+
+    if foto_ok:
+
+        print()
+        print(
+            "📸 FOTO TERMINOU"
+        )
+
+        print(
+            "👁️ PISCANDO DUAS VEZES..."
+        )
+
+        enviar_comando(
+            webview,
+            "DOUBLE_BLINK"
+        )
+
+    else:
+
+        print()
+        print(
+            "❌ FOTO FALHOU"
+        )
+
+        print(
+            "👁️ ABRINDO OLHOS..."
+        )
+
+        enviar_comando(
+            webview,
+            "OPEN_EYES"
+        )
 
 
 # ============================================================
@@ -232,8 +359,13 @@ def main():
 
     pasta_atual = os.getcwd()
 
-    print("PASTA ATUAL:")
-    print(pasta_atual)
+    print(
+        "PASTA ATUAL:"
+    )
+
+    print(
+        pasta_atual
+    )
 
     print()
 
@@ -246,8 +378,13 @@ def main():
         "robot.html"
     )
 
-    print("CARREGANDO:")
-    print(caminho_html)
+    print(
+        "CARREGANDO:"
+    )
+
+    print(
+        caminho_html
+    )
 
     with open(
         caminho_html,
@@ -257,7 +394,9 @@ def main():
 
         html = f.read()
 
-    print("robot.html CARREGADO")
+    print(
+        "robot.html CARREGADO"
+    )
 
     # ========================================================
     # CONEXÃO
@@ -354,12 +493,15 @@ def main():
         print(
             "========================================"
         )
+
         print(
             "AGUARDANDO WEBVIEW..."
         )
+
         print(
             "========================================"
         )
+
         print()
 
         # ====================================================
@@ -402,7 +544,7 @@ def main():
                 )
 
                 # ============================================
-                # WEBVIEW CARREGADO
+                # WEBVIEW
                 # ============================================
 
                 if event.type == "webviewProgress":
@@ -446,7 +588,7 @@ def main():
                         )
 
                         print(
-                            "👆 TOQUE NA TELA PARA PISCAR E TIRAR FOTO"
+                            "👆 TOQUE PARA TIRAR FOTO"
                         )
 
                         print()
@@ -470,10 +612,6 @@ def main():
                         event.value
                     )
 
-                    # ----------------------------------------
-                    # AÇÃO
-                    # ----------------------------------------
-
                     action = event.value.get(
                         "action"
                     )
@@ -484,7 +622,7 @@ def main():
                     )
 
                     # ----------------------------------------
-                    # SOMENTE PRESSIONAR
+                    # PRESSIONOU
                     # ----------------------------------------
 
                     if action in (
@@ -499,28 +637,9 @@ def main():
                                 "👆 TOQUE CONFIRMADO"
                             )
 
-                            # =================================
-                            # BLINK
-                            # =================================
-
-                            print(
-                                "👁️ ENVIANDO BLINK..."
+                            executar_foto(
+                                webview
                             )
-
-                            enviar_comando(
-                                webview,
-                                "BLINK"
-                            )
-
-                            # =================================
-                            # FOTO
-                            # =================================
-
-                            print(
-                                "📷 TIRANDO FOTO..."
-                            )
-
-                            tirar_foto()
 
                 # ============================================
                 # JAVASCRIPT CONSOLE

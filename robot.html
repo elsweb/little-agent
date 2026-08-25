@@ -12,7 +12,6 @@
 
 <title>ROBOT</title>
 
-
 <style>
 
 html,
@@ -204,23 +203,56 @@ window.robotEvent = function(command) {
         command
     );
 
-
     command = String(
         command
     ).toUpperCase();
 
 
+    // ----------------------------------------------
+    // BLINK
+    // ----------------------------------------------
+
     if (command === "BLINK") {
-
-        console.log(
-            "BLINK RECEBIDO"
-        );
-
 
         blink();
 
-
         return "BLINK OK";
+    }
+
+
+    // ----------------------------------------------
+    // FECHAR OLHOS
+    // ----------------------------------------------
+
+    if (command === "CLOSE_EYES") {
+
+        closeEyes();
+
+        return "EYES CLOSED";
+    }
+
+
+    // ----------------------------------------------
+    // ABRIR OLHOS
+    // ----------------------------------------------
+
+    if (command === "OPEN_EYES") {
+
+        openEyes();
+
+        return "EYES OPEN";
+    }
+
+
+    // ----------------------------------------------
+    // DOIS BLINKS
+    // ----------------------------------------------
+
+    if (command === "DOUBLE_BLINK") {
+
+        doubleBlink();
+
+        return "DOUBLE BLINK OK";
     }
 
 
@@ -236,28 +268,102 @@ window.robotEvent = function(command) {
 
 /*
 ==================================================
+PEGAR OLHOS
+==================================================
+*/
+
+function getEyes() {
+
+    return {
+
+        eye1:
+            document.getElementById(
+                "eye1"
+            ),
+
+        eye2:
+            document.getElementById(
+                "eye2"
+            ),
+
+        status:
+            document.getElementById(
+                "status"
+            )
+    };
+}
+
+
+/*
+==================================================
+FECHAR OLHOS
+==================================================
+*/
+
+function closeEyes() {
+
+    const eyes = getEyes();
+
+    console.log(
+        "👁️ OLHOS FECHADOS"
+    );
+
+
+    eyes.eye1.classList.add(
+        "blink"
+    );
+
+
+    eyes.eye2.classList.add(
+        "blink"
+    );
+
+
+    eyes.status.innerText =
+        "📷 TIRANDO FOTO...";
+}
+
+
+/*
+==================================================
+ABRIR OLHOS
+==================================================
+*/
+
+function openEyes() {
+
+    const eyes = getEyes();
+
+
+    eyes.eye1.classList.remove(
+        "blink"
+    );
+
+
+    eyes.eye2.classList.remove(
+        "blink"
+    );
+
+
+    eyes.status.innerText =
+        "AGUARDANDO PYTHON";
+
+
+    console.log(
+        "👁️ OLHOS ABERTOS"
+    );
+}
+
+
+/*
+==================================================
 BLINK
 ==================================================
 */
 
 function blink() {
 
-    const eye1 =
-        document.getElementById(
-            "eye1"
-        );
-
-
-    const eye2 =
-        document.getElementById(
-            "eye2"
-        );
-
-
-    const status =
-        document.getElementById(
-            "status"
-        );
+    const eyes = getEyes();
 
 
     console.log(
@@ -265,34 +371,34 @@ function blink() {
     );
 
 
-    eye1.classList.add(
+    eyes.eye1.classList.add(
         "blink"
     );
 
 
-    eye2.classList.add(
+    eyes.eye2.classList.add(
         "blink"
     );
 
 
-    status.innerText =
+    eyes.status.innerText =
         "BLINK";
 
 
     setTimeout(
         function() {
 
-            eye1.classList.remove(
+            eyes.eye1.classList.remove(
                 "blink"
             );
 
 
-            eye2.classList.remove(
+            eyes.eye2.classList.remove(
                 "blink"
             );
 
 
-            status.innerText =
+            eyes.status.innerText =
                 "AGUARDANDO PYTHON";
 
 
@@ -305,6 +411,43 @@ function blink() {
     );
 }
 
+
+/*
+==================================================
+DOUBLE BLINK
+==================================================
+*/
+
+function doubleBlink() {
+
+    console.log(
+        "👁️👁️ DOUBLE BLINK"
+    );
+
+
+    // Primeiro blink
+
+    blink();
+
+
+    // Segundo blink
+
+    setTimeout(
+        function() {
+
+            blink();
+
+        },
+        350
+    );
+}
+
+
+/*
+==================================================
+READY
+==================================================
+*/
 
 console.log(
     "robotEvent:",
