@@ -1,6 +1,184 @@
+import os
 import time
+import subprocess
 import termuxgui
+import json
 
+
+# ============================================================
+# CAMERA
+# ============================================================
+
+def encontrar_camera_frontal():
+
+    print()
+    print("========================================")
+    print("🔎 PROCURANDO CAMERA FRONTAL")
+    print("========================================")
+
+    try:
+
+        resultado = subprocess.run(
+            [
+                "termux-camera-info"
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10
+        )
+
+        if resultado.returncode != 0:
+
+            print("❌ ERRO AO CONSULTAR CAMERAS")
+            print(resultado.stderr)
+
+            return None
+
+        cameras = json.loads(
+            resultado.stdout
+        )
+
+        for camera in cameras:
+
+            camera_id = camera.get("id")
+            facing = camera.get("facing")
+
+            print(
+                "CAMERA:",
+                camera_id,
+                "| FACING:",
+                facing
+            )
+
+            if facing == "front":
+
+                print()
+                print("🤳 CAMERA FRONTAL ENCONTRADA")
+                print("ID:", camera_id)
+
+                return camera_id
+
+        print()
+        print("❌ CAMERA FRONTAL NÃO ENCONTRADA")
+
+        return None
+
+    except Exception as e:
+
+        print()
+        print("❌ ERRO AO IDENTIFICAR CAMERA")
+
+        print(
+            type(e).__name__,
+            e
+        )
+
+        return None
+
+def tirar_foto():
+
+    print()
+    print("========================================")
+    print("📷 TIRANDO FOTO")
+    print("========================================")
+
+    pasta_atual = os.getcwd()
+
+    arquivo = os.path.join(
+        pasta_atual,
+        "robot_foto.jpg"
+    )
+
+    camera = encontrar_camera_frontal()
+
+    if camera is None:
+
+        print(
+            "❌ NÃO FOI POSSÍVEL ENCONTRAR CAMERA FRONTAL"
+        )
+
+        return False
+
+    print("CAMERA FRONTAL:", camera)
+    print("ARQUIVO:", arquivo)
+
+    try:
+
+        resultado = subprocess.run(
+            [
+                "termux-camera-photo",
+                "-c",
+                str(camera),
+                arquivo
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=15
+        )
+
+        print("RETORNO:", resultado.returncode)
+
+        print("STDOUT:")
+        print(resultado.stdout)
+
+        print("STDERR:")
+        print(resultado.stderr)
+
+        if os.path.exists(arquivo):
+
+            tamanho = os.path.getsize(
+                arquivo
+            )
+
+            print()
+            print("========================================")
+            print("🤳 FOTO FRONTAL CRIADA")
+            print("========================================")
+
+            print("CAMERA:", camera)
+            print("ARQUIVO:", arquivo)
+            print("TAMANHO:", tamanho, "bytes")
+
+            return True
+
+        print()
+        print("❌ FOTO NÃO FOI CRIADA")
+
+        return False
+
+    except subprocess.TimeoutExpired:
+
+        print(
+            "❌ TIMEOUT DA CAMERA"
+        )
+
+        return False
+
+    except Exception as e:
+
+        print()
+        print("========================================")
+        print("❌ ERRO CAMERA")
+        print("========================================")
+
+        print(
+            "TIPO:",
+            type(e).__name__
+        )
+
+        print(
+            "ERRO:",
+            e
+        )
+
+        return False
+
+
+# ============================================================
+# PYTHON -> JAVASCRIPT
+# ============================================================
 
 def enviar_comando(webview, comando):
 
@@ -17,7 +195,9 @@ def enviar_comando(webview, comando):
 
     try:
 
-        resultado = webview.evaluatejs(js)
+        resultado = webview.evaluatejs(
+            js
+        )
 
         print("RESULTADO JS:", resultado)
 
@@ -34,6 +214,10 @@ def enviar_comando(webview, comando):
         return False
 
 
+# ============================================================
+# MAIN
+# ============================================================
+
 def main():
 
     print()
@@ -42,80 +226,101 @@ def main():
     print("========================================")
     print()
 
-    # --------------------------------------
+    # ========================================================
+    # PASTA ATUAL
+    # ========================================================
+
+    pasta_atual = os.getcwd()
+
+    print("PASTA ATUAL:")
+    print(pasta_atual)
+
+    print()
+
+    # ========================================================
     # HTML
-    # --------------------------------------
+    # ========================================================
+
+    caminho_html = os.path.join(
+        pasta_atual,
+        "robot.html"
+    )
+
+    print("CARREGANDO:")
+    print(caminho_html)
 
     with open(
-        "robot.html",
+        caminho_html,
         "r",
         encoding="utf-8"
     ) as f:
 
         html = f.read()
 
+    print("robot.html CARREGADO")
 
-    # --------------------------------------
+    # ========================================================
     # CONEXÃO
-    # --------------------------------------
+    # ========================================================
 
     with termuxgui.Connection() as conn:
 
-        activity = termuxgui.Activity(conn)
+        activity = termuxgui.Activity(
+            conn
+        )
 
-        webview = termuxgui.WebView(activity)
+        webview = termuxgui.WebView(
+            activity
+        )
 
         print(
             "WEBVIEW CRIADO"
         )
 
-
-        # --------------------------------------
+        # ====================================================
         # VISIBILIDADE
-        # --------------------------------------
+        # ====================================================
 
         webview.setvisibility(
             termuxgui.WebView.VISIBLE
         )
 
-
-        # --------------------------------------
+        # ====================================================
         # TAMANHO
-        # --------------------------------------
+        # ====================================================
 
         webview.setdimensions(
             termuxgui.WebView.MATCH_PARENT,
             termuxgui.WebView.MATCH_PARENT
         )
 
-
-        # --------------------------------------
+        # ====================================================
         # FUNDO
-        # --------------------------------------
+        # ====================================================
 
         webview.setbackgroundcolor(
             0xFF050505
         )
 
-
-        # --------------------------------------
+        # ====================================================
         # JAVASCRIPT
-        # --------------------------------------
+        # ====================================================
 
         print(
             "HABILITANDO JAVASCRIPT..."
         )
 
-        webview.allowjavascript(True)
+        webview.allowjavascript(
+            True
+        )
 
         print(
             "JAVASCRIPT HABILITADO"
         )
 
-
-        # --------------------------------------
+        # ====================================================
         # TOUCH
-        # --------------------------------------
+        # ====================================================
 
         print(
             "HABILITANDO TOUCH DO WEBVIEW..."
@@ -129,10 +334,9 @@ def main():
             "TOUCH DO WEBVIEW HABILITADO"
         )
 
-
-        # --------------------------------------
+        # ====================================================
         # HTML
-        # --------------------------------------
+        # ====================================================
 
         print(
             "CARREGANDO robot.html..."
@@ -146,7 +350,6 @@ def main():
             "robot.html ENVIADO"
         )
 
-
         print()
         print(
             "========================================"
@@ -159,22 +362,19 @@ def main():
         )
         print()
 
-
-        # --------------------------------------
+        # ====================================================
         # ESTADO
-        # --------------------------------------
+        # ====================================================
 
         webview_pronto = False
 
-
-        # --------------------------------------
+        # ====================================================
         # LOOP
-        # --------------------------------------
+        # ====================================================
 
         while True:
 
             event = conn.checkevent()
-
 
             if event:
 
@@ -201,10 +401,9 @@ def main():
                     "========================================"
                 )
 
-
-                # ==================================
+                # ============================================
                 # WEBVIEW CARREGADO
-                # ==================================
+                # ============================================
 
                 if event.type == "webviewProgress":
 
@@ -218,7 +417,6 @@ def main():
                         progress,
                         "%"
                     )
-
 
                     if (
                         progress >= 100
@@ -242,20 +440,20 @@ def main():
                         )
 
                         print()
+
                         print(
                             "🤖 ROBOT PRONTO"
                         )
 
                         print(
-                            "👆 TOQUE NA TELA PARA PISCAR"
+                            "👆 TOQUE NA TELA PARA PISCAR E TIRAR FOTO"
                         )
 
                         print()
 
-
-                # ==================================
+                # ============================================
                 # TOUCH
-                # ==================================
+                # ============================================
 
                 elif event.type == "touch":
 
@@ -272,25 +470,22 @@ def main():
                         event.value
                     )
 
-
-                    # ----------------------------------
-                    # AÇÃO DO TOUCH
-                    # ----------------------------------
+                    # ----------------------------------------
+                    # AÇÃO
+                    # ----------------------------------------
 
                     action = event.value.get(
                         "action"
                     )
-
 
                     print(
                         "AÇÃO:",
                         action
                     )
 
-
-                    # ----------------------------------
-                    # PISCAR SOMENTE AO PRESSIONAR
-                    # ----------------------------------
+                    # ----------------------------------------
+                    # SOMENTE PRESSIONAR
+                    # ----------------------------------------
 
                     if action in (
                         "down",
@@ -298,6 +493,15 @@ def main():
                     ):
 
                         if webview_pronto:
+
+                            print()
+                            print(
+                                "👆 TOQUE CONFIRMADO"
+                            )
+
+                            # =================================
+                            # BLINK
+                            # =================================
 
                             print(
                                 "👁️ ENVIANDO BLINK..."
@@ -308,50 +512,19 @@ def main():
                                 "BLINK"
                             )
 
+                            # =================================
+                            # FOTO
+                            # =================================
 
-                # ==================================
-                # EVENTOS DE TOUCH DIRETOS
-                # ==================================
+                            print(
+                                "📷 TIRANDO FOTO..."
+                            )
 
-                elif event.type == "down":
+                            tirar_foto()
 
-                    print(
-                        "👆 TOUCH DOWN"
-                    )
-
-                    print(
-                        event.value
-                    )
-
-                    if webview_pronto:
-
-                        enviar_comando(
-                            webview,
-                            "BLINK"
-                        )
-
-
-                elif event.type == "pointer_down":
-
-                    print(
-                        "👆 POINTER DOWN"
-                    )
-
-                    print(
-                        event.value
-                    )
-
-                    if webview_pronto:
-
-                        enviar_comando(
-                            webview,
-                            "BLINK"
-                        )
-
-
-                # ==================================
+                # ============================================
                 # JAVASCRIPT CONSOLE
-                # ==================================
+                # ============================================
 
                 elif event.type == "webviewConsoleMessage":
 
@@ -360,11 +533,14 @@ def main():
                         event.value
                     )
 
-
             time.sleep(
                 0.01
             )
 
+
+# ============================================================
+# START
+# ============================================================
 
 if __name__ == "__main__":
 
