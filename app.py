@@ -17,9 +17,8 @@ def enviar_comando(webview, comando):
 
     try:
 
-        resultado = webview.evaluatejs(js)
+        webview.evaluatejs(js)
 
-        print("RESULTADO JS:", resultado)
         print("JS ENVIADO COM SUCESSO")
 
         return True
@@ -44,7 +43,12 @@ def main():
     # HTML
     # --------------------------------------
 
-    with open("robot.html", "r", encoding="utf-8") as f:
+    with open(
+        "robot.html",
+        "r",
+        encoding="utf-8"
+    ) as f:
+
         html = f.read()
 
 
@@ -93,25 +97,35 @@ def main():
         # JAVASCRIPT
         # --------------------------------------
 
-        print("HABILITANDO JAVASCRIPT...")
+        print(
+            "HABILITANDO JAVASCRIPT..."
+        )
 
         webview.allowjavascript(True)
 
-        print("JAVASCRIPT HABILITADO")
+        print(
+            "JAVASCRIPT HABILITADO"
+        )
 
 
         # --------------------------------------
-        # CARREGAR HTML
+        # HTML
         # --------------------------------------
 
-        print("CARREGANDO robot.html...")
+        print(
+            "CARREGANDO robot.html..."
+        )
 
         webview.setdata(html)
 
-        print("robot.html ENVIADO")
-        print()
+        print(
+            "robot.html ENVIADO"
+        )
 
-        print("AGUARDANDO WEBVIEW...")
+        print()
+        print(
+            "AGUARDANDO WEBVIEW..."
+        )
         print()
 
 
@@ -120,6 +134,8 @@ def main():
         # --------------------------------------
 
         webview_pronto = False
+
+        ultimo_blink = 0
 
 
         # --------------------------------------
@@ -158,46 +174,39 @@ def main():
                     )
 
 
-                    if progress >= 100 and not webview_pronto:
+                    if (
+                        progress >= 100
+                        and
+                        not webview_pronto
+                    ):
 
                         webview_pronto = True
 
                         print()
-                        print("========================================")
-                        print("WEBVIEW CARREGADO")
-                        print("========================================")
+                        print(
+                            "========================================"
+                        )
+                        print(
+                            "🤖 WEBVIEW CARREGADO"
+                        )
+                        print(
+                            "========================================"
+                        )
                         print()
 
-                        time.sleep(0.5)
+                        print(
+                            "🤖 ROBOT PRONTO"
+                        )
 
-                        # Verifica se a função existe
+                        print(
+                            "BLINK AUTOMÁTICO A CADA 2 SEGUNDOS"
+                        )
 
-                        try:
-
-                            resultado = webview.evaluatejs(
-                                "typeof window.robotEvent"
-                            )
-
-                            print(
-                                "robotEvent:",
-                                resultado
-                            )
-
-                        except Exception as e:
-
-                            print(
-                                "ERRO AO VERIFICAR robotEvent:",
-                                e
-                            )
-
-                        print()
-                        print("🤖 ROBOT PRONTO")
-                        print("AGUARDANDO TOUCH...")
                         print()
 
 
                 # ==================================
-                # CONSOLE JAVASCRIPT
+                # JAVASCRIPT CONSOLE
                 # ==================================
 
                 elif event.type == "webviewConsoleMessage":
@@ -208,64 +217,33 @@ def main():
                     )
 
 
-                # ==================================
-                # TOUCH
-                # ==================================
+            # ==========================================
+            # BLINK AUTOMÁTICO
+            # ==========================================
 
-                elif event.type == "touch":
+            if webview_pronto:
 
-                    action = event.value.get(
-                        "action"
-                    )
+                agora = time.monotonic()
 
-                    x = event.value.get(
-                        "pointers",
-                        [{}]
-                    )[0].get(
-                        "x",
-                        0
-                    )
 
-                    y = event.value.get(
-                        "pointers",
-                        [{}]
-                    )[0].get(
-                        "y",
-                        0
+                if (
+                    agora - ultimo_blink
+                    >= 2
+                ):
+
+                    ultimo_blink = agora
+
+                    enviar_comando(
+                        webview,
+                        "BLINK"
                     )
 
 
-                    print()
-                    print("========================================")
-                    print("👆 TOUCH CAPTURADO PELO PYTHON")
-                    print("========================================")
-
-                    print("AÇÃO:", action)
-                    print("X:", x)
-                    print("Y:", y)
-
-
-                    # ----------------------------------
-                    # DISPARA SOMENTE QUANDO SOLTAR
-                    # ----------------------------------
-
-                    if action == "up":
-
-                        print()
-                        print("PYTHON DETECTOU TOQUE COMPLETO")
-
-                        enviar_comando(
-                            webview,
-                            "BLINK"
-                        )
-
-                        print()
-                        print("AGUARDANDO PRÓXIMO TOUCH...")
-                        print()
-
-
-            time.sleep(0.01)
+            time.sleep(
+                0.01
+            )
 
 
 if __name__ == "__main__":
+
     main()

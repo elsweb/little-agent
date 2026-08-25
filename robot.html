@@ -5,8 +5,10 @@
 
 <meta charset="utf-8">
 
-<meta name="viewport"
-      content="width=device-width, initial-scale=1">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+>
 
 <title>ROBOT</title>
 
@@ -203,7 +205,9 @@ window.robotEvent = function(command) {
     );
 
 
-    command = String(command).toUpperCase();
+    command = String(
+        command
+    ).toUpperCase();
 
 
     if (command === "BLINK") {
@@ -232,47 +236,73 @@ window.robotEvent = function(command) {
 
 /*
 ==================================================
-ANIMAÇÃO
+BLINK
 ==================================================
 */
 
 function blink() {
 
     const eye1 =
-        document.getElementById("eye1");
+        document.getElementById(
+            "eye1"
+        );
+
 
     const eye2 =
-        document.getElementById("eye2");
+        document.getElementById(
+            "eye2"
+        );
+
 
     const status =
-        document.getElementById("status");
+        document.getElementById(
+            "status"
+        );
 
 
-    eye1.classList.add("blink");
+    console.log(
+        "👁️ BLINK"
+    );
 
-    eye2.classList.add("blink");
+
+    eye1.classList.add(
+        "blink"
+    );
+
+
+    eye2.classList.add(
+        "blink"
+    );
 
 
     status.innerText =
         "BLINK";
 
 
-    setTimeout(function() {
+    setTimeout(
+        function() {
 
-        eye1.classList.remove("blink");
-
-        eye2.classList.remove("blink");
-
-
-        status.innerText =
-            "AGUARDANDO PYTHON";
+            eye1.classList.remove(
+                "blink"
+            );
 
 
-        console.log(
-            "BLINK FINALIZADO"
-        );
+            eye2.classList.remove(
+                "blink"
+            );
 
-    }, 180);
+
+            status.innerText =
+                "AGUARDANDO PYTHON";
+
+
+            console.log(
+                "BLINK FINALIZADO"
+            );
+
+        },
+        180
+    );
 }
 
 
