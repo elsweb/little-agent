@@ -1,0 +1,131 @@
+========================================
+DOCUMENTACAO TECNICA - SOLUCAO DE RECONHECIMENTO DE GESTOS
+AMBIENTE: TERMUX (ANDROID ARMV7) + PYTHON 3.14
+========================================
+
+1. MOTIVACAO E ANALISE DA SOLUCAO ESCOLHIDA
+----------------------------------------
+
+A abordagem inicial proposta era usar o MediaPipe Hand Landmarker / Gesture Recognizer. No entanto, essa solução foi descartada por inviabilidade técnica no ambiente alvo (Termux em dispositivo Android com arquitetura ARMv7 armeabi-v7a e Python 3.14). Ao tentar instalar o pacote via pip, não foi encontrada uma wheel compatível para essa plataforma. A compilação manual a partir do código fonte seria extremamente pesada, consumiria horas de processamento e poderia travar o dispositivo devido à limitação de memória e CPU.
+
+Diante desse obstáculo, a solução que efetivamente funcionou foi uma implementação manual em Python puro, integrada com o ImageMagick para processamento de imagens. Essa escolha se mostrou superior por:
+
+- Depender apenas do ImageMagick (instalado via gerenciador de pacotes do Termux) e da biblioteca padrão do Python.
+- Não exigir a instalação de bibliotecas pesadas como NumPy, OpenCV, TensorFlow ou MediaPipe.
+- Ser extremamente leve em termos de consumo de memória e processamento.
+- Oferecer total controle e transparencia sobre o algoritmo, permitindo ajustes finos via heurísticas e thresholds, alem de gerar imagens de depuracao (debug) para facilitar a calibracao.
+
+A solucao implementada simula um pipeline classico de visao computacional: segmentacao por cor (pele), extracao de componentes conectados, escolha do candidato principal (mao), calculo do convex hull, simplificacao poligonal e classificacao por perfil radial (contagem de picos para diferenciar punho fechado de mao aberta).
+
+2. COMANDOS DE TERMINAL UTILIZADOS (ORDEM CRONOLOGICA)
+-------------------------------------------------------
+
+2.1. INSTALACAO DE DEPENDENCIAS DO SISTEMA (TERMUX)
+
+pkg install termux-camera
+pkg install termux-camera-info
+pkg install imagemagick
+
+Nota: O pacote imagemagick e essencial para a solucao manual, pois fornece o comando "magick", utilizado para redimensionar, converter e manipular as imagens via linha de comando a partir do Python (subprocess).
+
+2.2. TESTE DE COMPATIBILIDADE DO MEDIAPIPE (QUE FALHOU)
+
+python -m pip install mediapipe
+
+Esse comando gerou a mensagem de erro "No matching distribution found for mediapipe", confirmando a inviabilidade da abordagem com ML.
+
+2.3. CAPTURA DE FOTO PELA CAMERA FRONTAL
+
+Para listar as cameras disponiveis e identificar o ID da frontal:
+
+termux-camera-info
+
+Com base no JSON retornado, identifica-se a camera com "facing": "front". O comando para capturar a foto e salvar como robot_foto.jpg:
+
+termux-camera-photo -c <ID_DA_CAMERA> robot_foto.jpg
+
+Exemplo: termux-camera-photo -c 1 robot_foto.jpg
+
+2.4. CRIACAO DAS IMAGENS DE REFERENCIA PARA O CLASSIFICADOR
+
+O detector manual funciona por comparacao de caracteristicas com imagens de referencia. Para criar a referencia do punho fechado (FIST):
+
+cp robot_foto.jpg gesto_fist.jpg
+
+Para criar a referencia da mao totalmente aberta (OPEN_PALM), apos tirar uma nova foto com a mao aberta na mesma posicao aproximada:
+
+cp robot_foto.jpg gesto_open_palm.jpg
+
+2.5. EXECUCAO DO DETECTOR DE GESTOS MANUAL
+
+No diretorio ~/opt (ou onde estiver o arquivo detector_gesto.py), executa-se:
+
+python detector_gesto.py
+
+Esse script le a imagem robot_foto.jpg, processa e imprime no terminal o resultado do gesto (FIST, OPEN_PALM ou UNKNOWN), alem de gerar arquivos de saida.
+
+2.6. VISUALIZACAO DAS IMAGENS DE DEPURACAO (DEBUG)
+
+Para abrir a mascara de pele (pixels classificados como pele):
+
+termux-open gesto_mascara.png
+
+Para abrir a imagem com o poligono desenhado sobre a mao detectada:
+
+termux-open gesto_detectado.png
+
+2.7. COMANDO PARA COPIAR A FOTO ATUAL COMO REFERENCIA DE UM NOVO GESTO
+
+Caso queira adicionar um terceiro gesto (ex: VITORIA), basta capturar a foto e copiar:
+
+cp robot_foto.jpg gesto_vitoria.jpg
+
+Nenhuma instalacao adicional e necessaria, apenas ajustar a logica de classificacao no codigo.
+
+3. ESTRUTURA DE DIRETORIOS E ARQUIVOS ENVOLVIDOS
+
+~/opt/
+├── detector_gesto.py          # Script principal do classificador manual
+├── robot_foto.jpg             # Ultima foto capturada
+├── gesto_fist.jpg             # Imagem de referencia para punho
+├── gesto_open_palm.jpg        # Imagem de referencia para mao aberta
+├── gesto_mascara.png          # Saida: mascara binaria da pele detectada
+└── gesto_detectado.png        # Saida: imagem com poligono sobreposto
+
+4. RESUMO DO FUNCIONAMENTO DO DETECTOR (SEM CODIGO)
+
+O detector executa as seguintes etapas em sequencia:
+
+1. Redimensiona a imagem de entrada para 320x320 pixels usando o comando magick, padronizando a escala e extraindo os bytes RGB crus.
+
+2. Aplica uma heuristica de deteccao de pele baseada em regras no espaco RGB (prioriza tons onde R >= G >= B, com valores minimos e saturacao acima de um limiar). Desconsidera a regiao superior da imagem (acima de 42% da altura) para evitar que o rosto ou cabelo sejam confundidos com a mao.
+
+3. Gera uma mascara binaria (1 para pele, 0 para fundo) e salva como gesto_mascara.png.
+
+4. Executa um algoritmo de componentes conectados (Busca em Largura - BFS) para agrupar pixels de pele adjacentes. Componentes com area menor que 80 pixels sao descartados como ruido.
+
+5. Seleciona o componente principal (candidato a mao) atraves de um score heuristico que considera: a area do componente, proximidade ao centro horizontal, posicao inferior na imagem (para separar da cabeca) e penalizacao para componentes que tocam as bordas laterais.
+
+6. Reune componentes proximos (distancia <= 55 pixels) para juntar partes da mao que podem ter sido separadas por sombras ou dobras (ex: dedos e palma).
+
+7. Calcula o convex hull (poligono envolvente) dos pontos da mao e simplifica o poligono reduzindo o numero de vertices (algoritmo de Douglas-Peucker).
+
+8. Classifica o gesto utilizando o perfil radial:
+   - Divide 360 graus em 72 bins (5 graus cada).
+   - Para cada bin, armazena a maior distancia do centro da mao ate a borda do poligono.
+   - Aplica suavizacao (media movel) e conta quantos picos (protuberancias) ultrapassam um limiar dinamico.
+   - Se o numero de picos for menor ou igual a 3, classifica como FIST (punho fechado).
+   - Se for maior ou igual a 4, classifica como OPEN_PALM (mao aberta).
+   - Caso contrario, retorna UNKNOWN.
+
+9. Gera a imagem gesto_detectado.png com o poligono desenhado em verde, preenchimento vermelho semitransparente e texto informativo (gesto, vertices, picos).
+
+5. OBSERVACOES IMPORTANTES SOBRE A MANUTENCAO E CALIBRACAO
+
+- A heuristica de pele e sensivel a iluminacao. Se o ambiente mudar drasticamente (luz muito amarela ou azulada), pode ser necessario ajustar os thresholds no codigo ou migrar a segmentacao para o espaco HSV.
+
+- O algoritmo assume que a mao esta posicionada aproximadamente no centro horizontal e na parte inferior da imagem. Caso o usuario mova a camera ou mude a postura, os parametros de corte (inicio_y, inicio_x, fim_x) e as ponderacoes do score podem precisar de recalibracao.
+
+- As imagens de referencia (gesto_fist.jpg e gesto_open_palm.jpg) nao sao usadas diretamente na versao final do detector que foi descrita no documento; o classificador final utiliza a contagem de picos radiais, e nao comparacao por similaridade com imagens de referencia. A sugestao inicial de usar imagens de referencia foi substituida por essa abordagem mais robusta baseada em geometria.
+
+- A geracao das imagens de depuracao (mascara e poligono) e essencial para validar se o algoritmo esta realmente isolando a mao e nao outras partes do corpo ou do fundo. Recomenda-se sempre verificar visualmente apos qualquer alteracao no codigo.
