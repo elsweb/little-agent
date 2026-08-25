@@ -17,7 +17,9 @@ def enviar_comando(webview, comando):
 
     try:
 
-        webview.evaluatejs(js)
+        resultado = webview.evaluatejs(js)
+
+        print("RESULTADO JS:", resultado)
 
         print("JS ENVIADO COM SUCESSO")
 
@@ -26,6 +28,7 @@ def enviar_comando(webview, comando):
     except Exception as e:
 
         print("ERRO AO EXECUTAR JAVASCRIPT:")
+
         print(e)
 
         return False
@@ -62,7 +65,9 @@ def main():
 
         webview = termuxgui.WebView(activity)
 
-        print("WEBVIEW CRIADO")
+        print(
+            "WEBVIEW CRIADO"
+        )
 
 
         # --------------------------------------
@@ -109,6 +114,23 @@ def main():
 
 
         # --------------------------------------
+        # TOUCH
+        # --------------------------------------
+
+        print(
+            "HABILITANDO TOUCH DO WEBVIEW..."
+        )
+
+        webview.sendtouchevent(
+            True
+        )
+
+        print(
+            "TOUCH DO WEBVIEW HABILITADO"
+        )
+
+
+        # --------------------------------------
         # HTML
         # --------------------------------------
 
@@ -116,15 +138,24 @@ def main():
             "CARREGANDO robot.html..."
         )
 
-        webview.setdata(html)
+        webview.setdata(
+            html
+        )
 
         print(
             "robot.html ENVIADO"
         )
 
+
         print()
         print(
+            "========================================"
+        )
+        print(
             "AGUARDANDO WEBVIEW..."
+        )
+        print(
+            "========================================"
         )
         print()
 
@@ -135,11 +166,9 @@ def main():
 
         webview_pronto = False
 
-        ultimo_blink = 0
-
 
         # --------------------------------------
-        # LOOP PRINCIPAL
+        # LOOP
         # --------------------------------------
 
         while True:
@@ -149,10 +178,27 @@ def main():
 
             if event:
 
+                print()
                 print(
-                    "EVENTO:",
-                    event.type,
+                    "========================================"
+                )
+
+                print(
+                    "EVENTO RECEBIDO"
+                )
+
+                print(
+                    "TYPE:",
+                    event.type
+                )
+
+                print(
+                    "VALUE:",
                     event.value
+                )
+
+                print(
+                    "========================================"
                 )
 
 
@@ -186,23 +232,121 @@ def main():
                         print(
                             "========================================"
                         )
+
                         print(
                             "🤖 WEBVIEW CARREGADO"
                         )
+
                         print(
                             "========================================"
                         )
-                        print()
 
+                        print()
                         print(
                             "🤖 ROBOT PRONTO"
                         )
 
                         print(
-                            "BLINK AUTOMÁTICO A CADA 2 SEGUNDOS"
+                            "👆 TOQUE NA TELA PARA PISCAR"
                         )
 
                         print()
+
+
+                # ==================================
+                # TOUCH
+                # ==================================
+
+                elif event.type == "touch":
+
+                    print()
+                    print(
+                        "👆 TOUCH RECEBIDO PELO PYTHON!"
+                    )
+
+                    print(
+                        "DADOS DO TOUCH:"
+                    )
+
+                    print(
+                        event.value
+                    )
+
+
+                    # ----------------------------------
+                    # AÇÃO DO TOUCH
+                    # ----------------------------------
+
+                    action = event.value.get(
+                        "action"
+                    )
+
+
+                    print(
+                        "AÇÃO:",
+                        action
+                    )
+
+
+                    # ----------------------------------
+                    # PISCAR SOMENTE AO PRESSIONAR
+                    # ----------------------------------
+
+                    if action in (
+                        "down",
+                        "pointer_down"
+                    ):
+
+                        if webview_pronto:
+
+                            print(
+                                "👁️ ENVIANDO BLINK..."
+                            )
+
+                            enviar_comando(
+                                webview,
+                                "BLINK"
+                            )
+
+
+                # ==================================
+                # EVENTOS DE TOUCH DIRETOS
+                # ==================================
+
+                elif event.type == "down":
+
+                    print(
+                        "👆 TOUCH DOWN"
+                    )
+
+                    print(
+                        event.value
+                    )
+
+                    if webview_pronto:
+
+                        enviar_comando(
+                            webview,
+                            "BLINK"
+                        )
+
+
+                elif event.type == "pointer_down":
+
+                    print(
+                        "👆 POINTER DOWN"
+                    )
+
+                    print(
+                        event.value
+                    )
+
+                    if webview_pronto:
+
+                        enviar_comando(
+                            webview,
+                            "BLINK"
+                        )
 
 
                 # ==================================
@@ -214,28 +358,6 @@ def main():
                     print(
                         "JAVASCRIPT:",
                         event.value
-                    )
-
-
-            # ==========================================
-            # BLINK AUTOMÁTICO
-            # ==========================================
-
-            if webview_pronto:
-
-                agora = time.monotonic()
-
-
-                if (
-                    agora - ultimo_blink
-                    >= 2
-                ):
-
-                    ultimo_blink = agora
-
-                    enviar_comando(
-                        webview,
-                        "BLINK"
                     )
 
 
