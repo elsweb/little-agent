@@ -4,6 +4,8 @@ import subprocess
 import termuxgui
 import json
 
+from detector_gesto import reconhecer_gesto
+
 
 # ============================================================
 # CAMERA
@@ -315,6 +317,80 @@ def executar_foto(webview):
             "📸 FOTO TERMINOU"
         )
 
+        # ====================================
+        # RECONHECER GESTO
+        # ====================================
+
+        print()
+        print(
+            "########################################"
+        )
+
+        print(
+            "# RECONHECIMENTO DE GESTO"
+        )
+
+        print(
+            "########################################"
+        )
+
+        print(
+            "🖐️ ANALISANDO FOTO..."
+        )
+
+        try:
+
+            gesto = reconhecer_gesto(
+                "robot_foto.jpg"
+            )
+
+            print()
+            print(
+                "🤖 GESTO DETECTADO:"
+            )
+
+            print(
+                gesto
+            )
+
+        except Exception as e:
+
+            print()
+            print(
+                "❌ ERRO NO RECONHECEDOR"
+            )
+
+            print(
+                "TIPO:",
+                type(e).__name__
+            )
+
+            print(
+                "ERRO:",
+                e
+            )
+
+            gesto = "UNKNOWN"
+
+        # ====================================
+        # ENVIAR GESTO PARA JAVASCRIPT
+        # ====================================
+
+        print()
+        print(
+            "📡 ENVIANDO GESTO PARA JAVASCRIPT..."
+        )
+
+        enviar_comando(
+            webview,
+            gesto
+        )
+
+        # ====================================
+        # PISCAR
+        # ====================================
+
+        print()
         print(
             "👁️ PISCANDO DUAS VEZES..."
         )

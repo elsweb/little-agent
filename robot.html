@@ -2,460 +2,346 @@
 <html>
 
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ROBOT</title>
+    <style>
+        html,
+        body {
+            background: black;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
 
-<meta charset="utf-8">
+        body {
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
->
+        .robot {
+            display: block;
+            width: 100%;
+            padding-top: 30px;
+        }
 
-<title>ROBOT</title>
+        .face {
+            display: block;
+            width: 280px;
+            height: 210px;
+            margin: 30px auto 0;
+            border: 3px solid cyan;
+            border-radius: 45px;
+            background: black;
+        }
 
-<style>
+        .eyes {
+            display: block;
+            width: 190px;
+            margin: 0 auto;
+            padding-top: 45px;
+            white-space: nowrap;
+        }
 
-html,
-body {
+        .eye {
+            display: inline-block;
+            width: 45px;
+            height: 45px;
+            margin-left: 15px;
+            margin-right: 15px;
+            background: cyan;
+            border-radius: 50%;
+            transition: height 0.08s, margin-top 0.08s;
+        }
 
-    background: black;
+        .eye.blink {
+            height: 4px;
+            margin-top: 41px;
+        }
 
-    margin: 0;
-    padding: 0;
+        .mouth {
+            display: block;
+            width: 110px;
+            height: 10px;
+            margin: 35px auto 0;
+            background: cyan;
+            border-radius: 8px;
+        }
 
-    width: 100%;
-    height: 100%;
-}
-
-
-body {
-
-    color: white;
-
-    font-family: Arial, sans-serif;
-
-    text-align: center;
-}
-
-
-.robot {
-
-    display: block;
-
-    width: 100%;
-
-    padding-top: 30px;
-}
-
-
-.face {
-
-    display: block;
-
-    width: 280px;
-    height: 210px;
-
-    margin: 30px auto 0;
-
-    border: 3px solid cyan;
-
-    border-radius: 45px;
-
-    background: black;
-}
-
-
-.eyes {
-
-    display: block;
-
-    width: 190px;
-
-    margin: 0 auto;
-
-    padding-top: 45px;
-
-    white-space: nowrap;
-}
-
-
-.eye {
-
-    display: inline-block;
-
-    width: 45px;
-    height: 45px;
-
-    margin-left: 15px;
-    margin-right: 15px;
-
-    background: cyan;
-
-    border-radius: 50%;
-
-    transition:
-        height 0.08s,
-        margin-top 0.08s;
-}
-
-
-.eye.blink {
-
-    height: 4px;
-
-    margin-top: 41px;
-}
-
-
-.mouth {
-
-    display: block;
-
-    width: 110px;
-    height: 10px;
-
-    margin: 35px auto 0;
-
-    background: cyan;
-
-    border-radius: 8px;
-}
-
-
-.status {
-
-    display: block;
-
-    margin-top: 20px;
-
-    color: white;
-
-    font-size: 16px;
-}
-
-</style>
-
+        .status {
+            display: block;
+            margin-top: 20px;
+            color: white;
+            font-size: 16px;
+            min-height: 22px;
+        }
+    </style>
 </head>
-
 
 <body>
 
-
-<span class="robot">
-
-
-    <span class="face">
-
-
-        <span class="eyes">
-
-
-            <span
-                class="eye"
-                id="eye1">
+    <span class="robot">
+        <span class="face">
+            <span class="eyes">
+                <span class="eye" id="eye1"></span>
+                <span class="eye" id="eye2"></span>
             </span>
-
-
-            <span
-                class="eye"
-                id="eye2">
-            </span>
-
-
+            <span class="mouth"></span>
         </span>
 
-
-        <span class="mouth"></span>
-
-
+        <span class="status">
+            <span id="status">AGUARDANDO PYTHON</span>
+            <span id="gesture" class="gesture">GESTO: AGUARDANDO...</span>
+        </span>
     </span>
 
+    <script>
 
-    <span
-        class="status"
-        id="status">
+        console.log("ROBOT HTML INICIADO");
 
-        AGUARDANDO PYTHON
+        /*
+        ==================================================
+        PYTHON -> JAVASCRIPT
+        ==================================================
+        */
 
-    </span>
+        window.robotEvent = function (command) {
 
+            console.log("PYTHON -> JAVASCRIPT:", command);
 
-</span>
+            command = String(command).toUpperCase();
 
+            // ----------------------------------------------
+            // GESTO: PUNHO
+            // ----------------------------------------------
 
-<script>
+            if (command === "FIST") {
 
+                showGesture("✊ PUNHO DETECTADO");
 
-console.log(
-    "ROBOT HTML INICIADO"
-);
+                return "FIST OK";
+            }
 
+            // ----------------------------------------------
+            // GESTO: MÃO ABERTA
+            // ----------------------------------------------
 
-/*
-==================================================
-PYTHON -> JAVASCRIPT
-==================================================
-*/
+            if (command === "OPEN_PALM") {
 
-window.robotEvent = function(command) {
+                showGesture("🖐️ MÃO ABERTA DETECTADA");
 
-    console.log(
-        "PYTHON -> JAVASCRIPT:",
-        command
-    );
+                return "OPEN PALM OK";
+            }
 
-    command = String(
-        command
-    ).toUpperCase();
+            // ----------------------------------------------
+            // GESTO DESCONHECIDO
+            // ----------------------------------------------
 
+            if (command === "UNKNOWN") {
 
-    // ----------------------------------------------
-    // BLINK
-    // ----------------------------------------------
+                showGesture("❓ GESTO NÃO RECONHECIDO");
 
-    if (command === "BLINK") {
+                return "UNKNOWN OK";
+            }
 
-        blink();
+            // ----------------------------------------------
+            // BLINK
+            // ----------------------------------------------
 
-        return "BLINK OK";
-    }
+            if (command === "BLINK") {
 
+                blink();
 
-    // ----------------------------------------------
-    // FECHAR OLHOS
-    // ----------------------------------------------
+                return "BLINK OK";
+            }
 
-    if (command === "CLOSE_EYES") {
+            // ----------------------------------------------
+            // FECHAR OLHOS
+            // ----------------------------------------------
 
-        closeEyes();
+            if (command === "CLOSE_EYES") {
 
-        return "EYES CLOSED";
-    }
+                closeEyes();
 
+                return "EYES CLOSED";
+            }
 
-    // ----------------------------------------------
-    // ABRIR OLHOS
-    // ----------------------------------------------
+            // ----------------------------------------------
+            // ABRIR OLHOS
+            // ----------------------------------------------
 
-    if (command === "OPEN_EYES") {
+            if (command === "OPEN_EYES") {
 
-        openEyes();
+                openEyes();
 
-        return "EYES OPEN";
-    }
+                return "EYES OPEN";
+            }
 
+            // ----------------------------------------------
+            // DOIS BLINKS
+            // ----------------------------------------------
 
-    // ----------------------------------------------
-    // DOIS BLINKS
-    // ----------------------------------------------
+            if (command === "DOUBLE_BLINK") {
 
-    if (command === "DOUBLE_BLINK") {
+                doubleBlink();
 
-        doubleBlink();
+                return "DOUBLE BLINK OK";
+            }
 
-        return "DOUBLE BLINK OK";
-    }
+            console.log("COMANDO DESCONHECIDO:", command);
 
+            return "UNKNOWN";
+        };
 
-    console.log(
-        "COMANDO DESCONHECIDO:",
-        command
-    );
 
+        /*
+        ==================================================
+        PEGAR ELEMENTOS
+        ==================================================
+        */
 
-    return "UNKNOWN";
-};
+        function getEyes() {
 
+            return {
+                eye1: document.getElementById("eye1"),
+                eye2: document.getElementById("eye2"),
+                status: document.getElementById("status")
+            };
+        }
 
-/*
-==================================================
-PEGAR OLHOS
-==================================================
-*/
 
-function getEyes() {
+        /*
+        ==================================================
+        MOSTRAR GESTO
+        ==================================================
+        */
 
-    return {
+        function showGesture(texto) {
 
-        eye1:
-            document.getElementById(
-                "eye1"
-            ),
+            const eyes = getEyes();
 
-        eye2:
-            document.getElementById(
-                "eye2"
-            ),
-
-        status:
-            document.getElementById(
-                "status"
-            )
-    };
-}
-
-
-/*
-==================================================
-FECHAR OLHOS
-==================================================
-*/
-
-function closeEyes() {
-
-    const eyes = getEyes();
-
-    console.log(
-        "👁️ OLHOS FECHADOS"
-    );
-
-
-    eyes.eye1.classList.add(
-        "blink"
-    );
-
-
-    eyes.eye2.classList.add(
-        "blink"
-    );
-
-
-    eyes.status.innerText =
-        "📷 TIRANDO FOTO...";
-}
-
-
-/*
-==================================================
-ABRIR OLHOS
-==================================================
-*/
-
-function openEyes() {
-
-    const eyes = getEyes();
-
-
-    eyes.eye1.classList.remove(
-        "blink"
-    );
-
-
-    eyes.eye2.classList.remove(
-        "blink"
-    );
-
-
-    eyes.status.innerText =
-        "AGUARDANDO PYTHON";
-
-
-    console.log(
-        "👁️ OLHOS ABERTOS"
-    );
-}
-
-
-/*
-==================================================
-BLINK
-==================================================
-*/
-
-function blink() {
-
-    const eyes = getEyes();
-
-
-    console.log(
-        "👁️ BLINK"
-    );
-
-
-    eyes.eye1.classList.add(
-        "blink"
-    );
-
-
-    eyes.eye2.classList.add(
-        "blink"
-    );
-
-
-    eyes.status.innerText =
-        "BLINK";
-
-
-    setTimeout(
-        function() {
-
-            eyes.eye1.classList.remove(
-                "blink"
-            );
-
-
-            eyes.eye2.classList.remove(
-                "blink"
-            );
-
-
-            eyes.status.innerText =
-                "AGUARDANDO PYTHON";
-
+            eyes.gesture.innerText =
+                "GESTO: " + texto;
 
             console.log(
-                "BLINK FINALIZADO"
+                "🤖 GESTO RECONHECIDO:",
+                texto
+            );
+        }
+
+
+        /*
+        ==================================================
+        FECHAR OLHOS
+        ==================================================
+        */
+
+        function closeEyes() {
+
+            const eyes = getEyes();
+
+            console.log("👁️ OLHOS FECHADOS");
+
+            eyes.eye1.classList.add("blink");
+            eyes.eye2.classList.add("blink");
+
+            eyes.status.innerText = "📷 TIRANDO FOTO...";
+        }
+
+
+        /*
+        ==================================================
+        ABRIR OLHOS
+        ==================================================
+        */
+
+        function openEyes() {
+
+            const eyes = getEyes();
+
+            eyes.eye1.classList.remove("blink");
+            eyes.eye2.classList.remove("blink");
+
+            eyes.status.innerText = "AGUARDANDO PYTHON";
+
+            console.log("👁️ OLHOS ABERTOS");
+        }
+
+
+        /*
+        ==================================================
+        BLINK
+        ==================================================
+        */
+
+        function blink() {
+
+            const eyes = getEyes();
+
+            console.log(
+                "👁️ BLINK"
             );
 
-        },
-        180
-    );
-}
+            eyes.eye1.classList.add(
+                "blink"
+            );
+
+            eyes.eye2.classList.add(
+                "blink"
+            );
+
+            setTimeout(
+                function () {
+
+                    eyes.eye1.classList.remove(
+                        "blink"
+                    );
+
+                    eyes.eye2.classList.remove(
+                        "blink"
+                    );
+
+                    console.log(
+                        "BLINK FINALIZADO"
+                    );
+
+                },
+                180
+            );
+        }
 
 
-/*
-==================================================
-DOUBLE BLINK
-==================================================
-*/
+        /*
+        ==================================================
+        DOUBLE BLINK
+        ==================================================
+        */
 
-function doubleBlink() {
+        function doubleBlink() {
 
-    console.log(
-        "👁️👁️ DOUBLE BLINK"
-    );
-
-
-    // Primeiro blink
-
-    blink();
-
-
-    // Segundo blink
-
-    setTimeout(
-        function() {
+            console.log("👁️👁️ DOUBLE BLINK");
 
             blink();
 
-        },
-        350
-    );
-}
+            setTimeout(function () {
+
+                blink();
+
+            }, 350);
+        }
 
 
-/*
-==================================================
-READY
-==================================================
-*/
+        /*
+        ==================================================
+        READY
+        ==================================================
+        */
 
-console.log(
-    "robotEvent:",
-    typeof window.robotEvent
-);
+        console.log("robotEvent:", typeof window.robotEvent);
 
-</script>
-
+    </script>
 
 </body>
 
