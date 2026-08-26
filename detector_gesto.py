@@ -1,7 +1,18 @@
 import os
+import sys
 import subprocess
 import math
 from collections import deque
+import glob
+import urllib.request
+import numpy as np
+
+try:
+    import tflite_runtime.interpreter as tflite
+except Exception as e:
+    print("❌ tflite_runtime não disponível")
+    print(e)
+    sys.exit(1)
 
 
 # ============================================================
@@ -16,6 +27,220 @@ GESTO_UNKNOWN = "UNKNOWN"
 
 ARQUIVO_DEBUG = "gesto_detectado.png"
 ARQUIVO_MASCARA = "gesto_mascara.png"
+
+AREA_MINIMA = 120
+
+# ------------------------------------------------------------
+# MODELOS
+# ------------------------------------------------------------
+
+PASTA_PROJETO = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+MODELO_PALMA = os.path.join(
+    PASTA_PROJETO,
+    "palm_detection_full.tflite"
+)
+
+MODELO_LANDMARK = os.path.join(
+    PASTA_PROJETO,
+    "hand_landmark_full.tflite"
+)
+
+MODELO_EMBEDDING = os.path.join(
+    PASTA_PROJETO,
+    "gesture_embedder.tflite"
+)
+
+MODELO_GESTO = os.path.join(
+    PASTA_PROJETO,
+    "canned_gesture_classifier.tflite"
+)
+
+
+URL_MODELOS = {
+    MODELO_PALMA:
+        "https://storage.googleapis.com/mediapipe-assets/palm_detection_full.tflite",
+
+    MODELO_LANDMARK:
+        "https://storage.googleapis.com/mediapipe-assets/hand_landmark_full.tflite",
+
+    MODELO_EMBEDDING:
+        "https://storage.googleapis.com/mediapipe-assets/gesture_embedder.tflite",
+
+    MODELO_GESTO:
+        "https://storage.googleapis.com/mediapipe-assets/canned_gesture_classifier.tflite",
+}
+
+
+# ============================================================
+# DOWNLOAD DOS MODELOS
+# ============================================================
+
+def baixar_modelos():
+
+    print()
+    print("========================================")
+    print("📦 MODELOS TFLITE")
+    print("========================================")
+
+    for arquivo, url in URL_MODELOS.items():
+
+        nome = os.path.basename(arquivo)
+
+        if os.path.exists(arquivo):
+
+            tamanho = os.path.getsize(arquivo)
+
+            print(
+                f"✅ {nome}: "
+                f"{tamanho / 1024:.1f} KB"
+            )
+
+            continue
+
+        print()
+        print("⬇️ Baixando:", nome)
+        print(url)
+
+        try:
+
+            urllib.request.urlretrieve(
+                url,
+                arquivo
+            )
+
+            tamanho = os.path.getsize(
+                arquivo
+            )
+
+            print(
+                f"✅ Baixado: "
+                f"{tamanho / 1024:.1f} KB"
+            )
+
+        except Exception as e:
+
+            print(
+                "❌ ERRO AO BAIXAR:",
+                nome
+            )
+
+            print(e)
+
+            if os.path.exists(arquivo):
+
+                try:
+                    os.remove(arquivo)
+                except Exception:
+                    pass
+
+    faltando = []
+
+    for arquivo in URL_MODELOS:
+
+        if not os.path.exists(arquivo):
+            faltando.append(
+                os.path.basename(arquivo)
+            )
+
+    if faltando:
+
+        print()
+        print(
+            "❌ MODELOS FALTANDO:"
+        )
+
+        for nome in faltando:
+            print(" -", nome)
+
+        return False
+
+    print()
+    print("✅ Todos os modelos disponíveis")
+
+    return True
+
+
+# ============================================================
+# UTILITÁRIOS TFLITE
+# ============================================================
+
+def criar_interpreter(arquivo):
+
+    print()
+    print(
+        "CARREGANDO TFLITE:",
+        os.path.basename(arquivo)
+    )
+
+    interpreter = tflite.Interpreter(
+        model_path=arquivo,
+        num_threads=2
+    )
+
+    interpreter.allocate_tensors()
+
+    entradas = interpreter.get_input_details()
+    saidas = interpreter.get_output_details()
+
+    print(
+        "ENTRADAS:",
+        len(entradas)
+    )
+
+    for entrada in entradas:
+
+        print(
+            " ",
+            entrada["name"],
+            entrada["shape"],
+            entrada["dtype"]
+        )
+
+    print(
+        "SAÍDAS:",
+        len(saidas)
+    )
+
+    for saida in saidas:
+
+        print(
+            " ",
+            saida["name"],
+            saida["shape"],
+            saida["dtype"]
+        )
+
+    return interpreter
+
+
+# ============================================================
+# LIMPEZA
+# ============================================================
+
+def limpar_pngs():
+
+    for arq in glob.glob(
+        os.path.join(
+            PASTA_PROJETO,
+            "*.png"
+        )
+    ):
+
+        try:
+            os.remove(arq)
+            print(
+                "🗑️ Removido:",
+                arq
+            )
+        except Exception as e:
+            print(
+                "⚠️ Não foi possível remover:",
+                arq,
+                e
+            )
 
 
 # ============================================================
@@ -42,7 +267,7 @@ def obter_tamanho_imagem(arquivo):
     if resultado.returncode != 0:
 
         print(
-            "❌ ERRO AO OBTER TAMANHO DA IMAGEM"
+            "❌ ERRO AO OBTER TAMANHO"
         )
 
         print(
@@ -53,23 +278,23 @@ def obter_tamanho_imagem(arquivo):
 
     try:
 
-        largura, altura = map(
-            int,
-            resultado.stdout.strip().split()
+        return tuple(
+            map(
+                int,
+                resultado.stdout.strip().split()
+            )
         )
-
-        return largura, altura
 
     except Exception:
 
         return None
 
 
-# ============================================================
-# CARREGAR RGB
-# ============================================================
-
-def carregar_rgb(arquivo, largura, altura):
+def carregar_rgb(
+    arquivo,
+    largura,
+    altura
+):
 
     resultado = subprocess.run(
         [
@@ -91,39 +316,20 @@ def carregar_rgb(arquivo, largura, altura):
             "❌ ERRO AO LER RGB"
         )
 
-        try:
-
-            print(
-                resultado.stderr.decode(
-                    errors="ignore"
-                )
-            )
-
-        except Exception:
-
-            pass
-
         return None
 
     dados = resultado.stdout
 
-    esperado = largura * altura * 3
+    esperado = (
+        largura *
+        altura *
+        3
+    )
 
     if len(dados) < esperado:
 
-        print()
         print(
-            "❌ DADOS RGB INCOMPLETOS"
-        )
-
-        print(
-            "ESPERADO:",
-            esperado
-        )
-
-        print(
-            "RECEBIDO:",
-            len(dados)
+            "❌ RGB INCOMPLETO"
         )
 
         return None
@@ -131,29 +337,232 @@ def carregar_rgb(arquivo, largura, altura):
     return dados
 
 
-# ============================================================
-# PIXEL
-# ============================================================
+def pixel_rgb(
+    dados,
+    largura,
+    x,
+    y
+):
 
-def pixel_rgb(dados, largura, x, y):
-
-    indice = (
-        (y * largura + x)
-        * 3
-    )
+    i = (
+        y *
+        largura +
+        x
+    ) * 3
 
     return (
-        dados[indice],
-        dados[indice + 1],
-        dados[indice + 2]
+        dados[i],
+        dados[i + 1],
+        dados[i + 2]
     )
 
 
 # ============================================================
-# DETECÇÃO DE PELE
+# IMAGEM NUMPY
 # ============================================================
 
-def pixel_eh_pele(r, g, b):
+def rgb_para_numpy(
+    dados,
+    largura,
+    altura
+):
+
+    arr = np.frombuffer(
+        dados,
+        dtype=np.uint8
+    )
+
+    arr = arr[
+        :largura * altura * 3
+    ]
+
+    return arr.reshape(
+        altura,
+        largura,
+        3
+    )
+
+
+# ============================================================
+# DETECTOR DE PELE
+# ============================================================
+
+def distancia_cor(a, b):
+
+    return math.sqrt(
+        (a[0] - b[0]) ** 2 +
+        (a[1] - b[1]) ** 2 +
+        (a[2] - b[2]) ** 2
+    )
+
+
+def amostrar_pele(
+    dados,
+    largura,
+    altura
+):
+
+    inicio_y = int(
+        altura * 0.35
+    )
+
+    fim_y = int(
+        altura * 0.92
+    )
+
+    inicio_x = int(
+        largura * 0.03
+    )
+
+    fim_x = int(
+        largura * 0.95
+    )
+
+    candidatos = []
+
+    passo = 3
+
+    for y in range(
+        inicio_y,
+        fim_y,
+        passo
+    ):
+
+        for x in range(
+            inicio_x,
+            fim_x,
+            passo
+        ):
+
+            r, g, b = pixel_rgb(
+                dados,
+                largura,
+                x,
+                y
+            )
+
+            brilho = (
+                r + g + b
+            ) / 3.0
+
+            maior = max(
+                r,
+                g,
+                b
+            )
+
+            menor = min(
+                r,
+                g,
+                b
+            )
+
+            sat = maior - menor
+
+            if brilho < 35:
+                continue
+
+            if brilho > 250:
+                continue
+
+            if sat < 8:
+                continue
+
+            if r < b * 0.45:
+                continue
+
+            if g < b * 0.60:
+                continue
+
+            candidatos.append(
+                (r, g, b)
+            )
+
+    if not candidatos:
+
+        print(
+            "⚠️ Nenhuma amostra de pele"
+        )
+
+        return (
+            150,
+            110,
+            90
+        )
+
+    rs = sorted(
+        x[0]
+        for x in candidatos
+    )
+
+    gs = sorted(
+        x[1]
+        for x in candidatos
+    )
+
+    bs = sorted(
+        x[2]
+        for x in candidatos
+    )
+
+    meio = len(
+        candidatos
+    ) // 2
+
+    referencia = (
+        rs[meio],
+        gs[meio],
+        bs[meio]
+    )
+
+    print(
+        "AMOSTRA PELE:",
+        referencia
+    )
+
+    print(
+        "AMOSTRAS:",
+        len(candidatos)
+    )
+
+    return referencia
+
+
+def pixel_eh_pele(
+    r,
+    g,
+    b,
+    referencia
+):
+
+    rr, rg, rb = referencia
+
+    brilho = (
+        r + g + b
+    ) / 3.0
+
+    if brilho < 30:
+        return False
+
+    if brilho > 252:
+        return False
+
+    distancia = distancia_cor(
+        (r, g, b),
+        referencia
+    )
+
+    if distancia > 115:
+        return False
+
+    if abs(r - rr) > 95:
+        return False
+
+    if abs(g - rg) > 95:
+        return False
+
+    if abs(b - rb) > 95:
+        return False
 
     maior = max(
         r,
@@ -167,81 +576,48 @@ def pixel_eh_pele(r, g, b):
         b
     )
 
-    saturacao = maior - menor
-
-    # --------------------------------------------------------
-    # Regras simples.
-    #
-    # Não dependemos de uma cor específica.
-    # A ideia é encontrar regiões com:
-    #
-    # R >= G >= B
-    #
-    # e alguma diferença entre as cores.
-    # --------------------------------------------------------
-
-    if r < 25:
+    if maior - menor < 6:
         return False
 
-    if g < 12:
+    if r < b * 0.45:
         return False
 
-    if b < 5:
-        return False
-
-    if r < g:
-        return False
-
-    if g < b:
-        return False
-
-    if saturacao < 8:
-        return False
-
-    if (r - b) < 10:
+    if g < b * 0.58:
         return False
 
     return True
 
 
 # ============================================================
-# CRIAR MÁSCARA
+# MÁSCARA
 # ============================================================
 
-def criar_mascara(dados, largura, altura):
+def criar_mascara(
+    dados,
+    largura,
+    altura
+):
 
     mascara = bytearray(
         largura * altura
     )
 
-    # --------------------------------------------------------
-    # Evitamos a parte superior da foto.
-    #
-    # Isso ajuda a não confundir rosto/cabelo com a mão.
-    # --------------------------------------------------------
-
-    inicio_y = int(
-        altura * 0.42
-    )
-
-    inicio_x = int(
-        largura * 0.08
-    )
-
-    fim_x = int(
-        largura * 0.92
+    referencia = amostrar_pele(
+        dados,
+        largura,
+        altura
     )
 
     quantidade = 0
 
     for y in range(
-        inicio_y,
-        altura
+        int(altura * 0.20),
+        int(altura * 0.98)
     ):
 
         for x in range(
-            inicio_x,
-            fim_x
+            int(largura * 0.02),
+            int(largura * 0.98)
         ):
 
             r, g, b = pixel_rgb(
@@ -254,7 +630,8 @@ def criar_mascara(dados, largura, altura):
             if pixel_eh_pele(
                 r,
                 g,
-                b
+                b,
+                referencia
             ):
 
                 mascara[
@@ -268,11 +645,142 @@ def criar_mascara(dados, largura, altura):
         quantidade
     )
 
+    mascara = dilatar_mascara(
+        mascara,
+        largura,
+        altura,
+        1
+    )
+
+    mascara = erodir_mascara(
+        mascara,
+        largura,
+        altura,
+        1
+    )
+
     return mascara
 
 
+def dilatar_mascara(
+    mascara,
+    largura,
+    altura,
+    iteracoes=1
+):
+
+    atual = mascara
+
+    for _ in range(
+        iteracoes
+    ):
+
+        nova = bytearray(
+            len(atual)
+        )
+
+        for y in range(
+            1,
+            altura - 1
+        ):
+
+            for x in range(
+                1,
+                largura - 1
+            ):
+
+                idx = (
+                    y *
+                    largura +
+                    x
+                )
+
+                if atual[idx]:
+
+                    nova[idx] = 1
+
+                    nova[idx - 1] = 1
+                    nova[idx + 1] = 1
+
+                    nova[
+                        idx - largura
+                    ] = 1
+
+                    nova[
+                        idx + largura
+                    ] = 1
+
+                    nova[
+                        idx - largura - 1
+                    ] = 1
+
+                    nova[
+                        idx - largura + 1
+                    ] = 1
+
+                    nova[
+                        idx + largura - 1
+                    ] = 1
+
+                    nova[
+                        idx + largura + 1
+                    ] = 1
+
+        atual = nova
+
+    return atual
+
+
+def erodir_mascara(
+    mascara,
+    largura,
+    altura,
+    iteracoes=1
+):
+
+    atual = mascara
+
+    for _ in range(
+        iteracoes
+    ):
+
+        nova = bytearray(
+            len(atual)
+        )
+
+        for y in range(
+            1,
+            altura - 1
+        ):
+
+            for x in range(
+                1,
+                largura - 1
+            ):
+
+                idx = (
+                    y *
+                    largura +
+                    x
+                )
+
+                if (
+                    atual[idx]
+                    and atual[idx - 1]
+                    and atual[idx + 1]
+                    and atual[idx - largura]
+                    and atual[idx + largura]
+                ):
+
+                    nova[idx] = 1
+
+        atual = nova
+
+    return atual
+
+
 # ============================================================
-# COMPONENTES CONECTADOS
+# COMPONENTES
 # ============================================================
 
 def encontrar_componentes(
@@ -295,23 +803,23 @@ def encontrar_componentes(
             largura
         ):
 
-            indice = (
-                y * largura + x
+            idx = (
+                y *
+                largura +
+                x
             )
 
-            if not mascara[indice]:
+            if not mascara[idx]:
                 continue
 
-            if visitado[indice]:
+            if visitado[idx]:
                 continue
 
-            fila = deque()
-
-            fila.append(
+            fila = deque([
                 (x, y)
-            )
+            ])
 
-            visitado[indice] = 1
+            visitado[idx] = 1
 
             pontos = []
 
@@ -328,23 +836,32 @@ def encontrar_componentes(
                     (px, py)
                 )
 
-                if px < min_x:
-                    min_x = px
+                min_x = min(
+                    min_x,
+                    px
+                )
 
-                if px > max_x:
-                    max_x = px
+                max_x = max(
+                    max_x,
+                    px
+                )
 
-                if py < min_y:
-                    min_y = py
+                min_y = min(
+                    min_y,
+                    py
+                )
 
-                if py > max_y:
-                    max_y = py
+                max_y = max(
+                    max_y,
+                    py
+                )
 
                 vizinhos = (
                     (px - 1, py),
                     (px + 1, py),
                     (px, py - 1),
                     (px, py + 1),
+
                     (px - 1, py - 1),
                     (px + 1, py - 1),
                     (px - 1, py + 1),
@@ -366,7 +883,9 @@ def encontrar_componentes(
                         continue
 
                     ni = (
-                        ny * largura + nx
+                        ny *
+                        largura +
+                        nx
                     )
 
                     if not mascara[ni]:
@@ -385,44 +904,31 @@ def encontrar_componentes(
                 pontos
             )
 
-            if area < 80:
+            if area < AREA_MINIMA:
                 continue
 
-            largura_componente = (
-                max_x - min_x + 1
-            )
+            componentes.append({
+                "pontos": pontos,
+                "area": area,
+                "x": min_x,
+                "y": min_y,
+                "w": max_x - min_x + 1,
+                "h": max_y - min_y + 1,
+                "cx": (
+                    min_x + max_x
+                ) / 2,
+                "cy": (
+                    min_y + max_y
+                ) / 2
+            })
 
-            altura_componente = (
-                max_y - min_y + 1
-            )
-
-            centro_x = (
-                min_x + max_x
-            ) / 2
-
-            centro_y = (
-                min_y + max_y
-            ) / 2
-
-            componentes.append(
-                {
-                    "pontos": pontos,
-                    "area": area,
-                    "x": min_x,
-                    "y": min_y,
-                    "w": largura_componente,
-                    "h": altura_componente,
-                    "cx": centro_x,
-                    "cy": centro_y
-                }
-            )
+    componentes.sort(
+        key=lambda c: c["area"],
+        reverse=True
+    )
 
     return componentes
 
-
-# ============================================================
-# ESCOLHER CANDIDATO
-# ============================================================
 
 def escolher_componente(
     componentes,
@@ -431,105 +937,54 @@ def escolher_componente(
 ):
 
     if not componentes:
-
         return None
 
+    alvo_x = largura * 0.50
+    alvo_y = altura * 0.60
+
     melhor = None
-    melhor_score = -1
+    melhor_score = -999999
 
-    centro_imagem_x = (
-        largura / 2
-    )
+    for comp in componentes:
 
-    for componente in componentes:
+        cx = comp["cx"]
+        cy = comp["cy"]
+        area = comp["area"]
 
-        area = componente["area"]
-
-        cx = componente["cx"]
-        cy = componente["cy"]
-
-        # ----------------------------------------------------
-        # Quanto mais próximo do centro horizontal,
-        # melhor.
-        # ----------------------------------------------------
-
-        distancia_x = abs(
-            cx - centro_imagem_x
-        )
-
-        score_centro = max(
-            0,
-            1 - (
-                distancia_x
-                /
-                (largura / 2)
-            )
-        )
-
-        # ----------------------------------------------------
-        # Preferir região inferior.
-        # ----------------------------------------------------
-
-        score_inferior = max(
-            0,
-            min(
-                1,
-                (
-                    cy
-                    -
-                    altura * 0.42
-                )
-                /
-                (
-                    altura * 0.58
-                )
-            )
-        )
-
-        # ----------------------------------------------------
-        # Componentes maiores têm mais peso.
-        # ----------------------------------------------------
-
-        score_area = math.sqrt(
-            area
-        )
-
-        # ----------------------------------------------------
-        # Evitar componentes encostados
-        # nas bordas.
-        # ----------------------------------------------------
-
-        penalidade = 0
-
-        if componente["x"] <= 2:
-            penalidade += 50
-
-        if (
-            componente["x"]
+        distancia = math.sqrt(
+            (
+                (cx - alvo_x)
+                / largura
+            ) ** 2
             +
-            componente["w"]
-            >= largura - 2
-        ):
-            penalidade += 50
+            (
+                (cy - alvo_y)
+                / altura
+            ) ** 2
+        )
+
+        proximidade = max(
+            0,
+            1 - distancia * 2.5
+        )
 
         score = (
-            score_area
+            math.sqrt(area) * 2
             +
-            score_centro * 70
-            +
-            score_inferior * 50
-            -
-            penalidade
+            proximidade * 220
         )
+
+        if cy < altura * 0.30:
+            score -= 200
 
         if score > melhor_score:
 
             melhor_score = score
-            melhor = componente
+            melhor = comp
 
     print()
     print(
-        "COMPONENTE ESCOLHIDO:"
+        "COMPONENTE ESCOLHIDO"
     )
 
     print(
@@ -538,239 +993,103 @@ def escolher_componente(
     )
 
     print(
-        "X:",
-        melhor["x"]
-    )
-
-    print(
-        "Y:",
-        melhor["y"]
-    )
-
-    print(
-        "W:",
-        melhor["w"]
-    )
-
-    print(
-        "H:",
-        melhor["h"]
+        "BOX:",
+        (
+            melhor["x"],
+            melhor["y"],
+            melhor["w"],
+            melhor["h"]
+        )
     )
 
     return melhor
 
 
 # ============================================================
-# DISTÂNCIA ENTRE RETÂNGULOS
+# CONTORNO
 # ============================================================
 
-def distancia_caixas(a, b):
-
-    ax1 = a["x"]
-    ay1 = a["y"]
-
-    ax2 = (
-        a["x"]
-        +
-        a["w"]
-    )
-
-    ay2 = (
-        a["y"]
-        +
-        a["h"]
-    )
-
-    bx1 = b["x"]
-    by1 = b["y"]
-
-    bx2 = (
-        b["x"]
-        +
-        b["w"]
-    )
-
-    by2 = (
-        b["y"]
-        +
-        b["h"]
-    )
-
-    dx = max(
-        ax1 - bx2,
-        bx1 - ax2,
-        0
-    )
-
-    dy = max(
-        ay1 - by2,
-        by1 - ay2,
-        0
-    )
-
-    return math.sqrt(
-        dx * dx
-        +
-        dy * dy
-    )
-
-
-# ============================================================
-# JUNTAR COMPONENTES PRÓXIMOS
-# ============================================================
-
-def juntar_componentes(
-    componentes,
-    principal
+def extrair_contorno(
+    pontos,
+    largura,
+    altura
 ):
 
-    selecionados = [
-        principal
-    ]
+    conjunto = set(
+        pontos
+    )
 
-    limite = 55
+    contorno = []
 
-    mudou = True
+    for x, y in pontos:
 
-    while mudou:
+        borda = False
 
-        mudou = False
-
-        for componente in componentes:
-
-            if componente in selecionados:
-                continue
-
-            distancia = min(
-                distancia_caixas(
-                    componente,
-                    outro
-                )
-                for outro in selecionados
-            )
-
-            # ------------------------------------------------
-            # Não pegar coisas muito nas bordas.
-            # ------------------------------------------------
-
-            if componente["x"] <= 5:
-                continue
+        for nx, ny in (
+            (x - 1, y),
+            (x + 1, y),
+            (x, y - 1),
+            (x, y + 1),
+        ):
 
             if (
-                componente["x"]
-                +
-                componente["w"]
-                >= 315
+                nx < 0
+                or ny < 0
+                or nx >= largura
+                or ny >= altura
+                or (nx, ny) not in conjunto
             ):
-                continue
 
-            if distancia <= limite:
+                borda = True
+                break
 
-                selecionados.append(
-                    componente
-                )
+        if borda:
+            contorno.append(
+                (x, y)
+            )
 
-                mudou = True
-
-    pontos = []
-
-    for componente in selecionados:
-
-        pontos.extend(
-            componente["pontos"]
-        )
-
-    print()
-    print(
-        "COMPONENTES JUNTOS:",
-        len(selecionados)
-    )
-
-    print(
-        "PIXELS TOTAIS:",
-        len(pontos)
-    )
-
-    return pontos
+    return contorno
 
 
-# ============================================================
-# CONVEX HULL
-# ============================================================
+def calcular_centro(
+    pontos
+):
 
-def cross(o, a, b):
+    if not pontos:
+        return 0, 0
+
+    sx = 0
+    sy = 0
+
+    for x, y in pontos:
+
+        sx += x
+        sy += y
 
     return (
-        (a[0] - o[0])
-        *
-        (b[1] - o[1])
-        -
-        (a[1] - o[1])
-        *
-        (b[0] - o[0])
-    )
-
-
-def convex_hull(pontos):
-
-    pontos = sorted(
-        set(pontos)
-    )
-
-    if len(pontos) <= 2:
-
-        return pontos
-
-    inferior = []
-
-    for ponto in pontos:
-
-        while (
-            len(inferior) >= 2
-            and
-            cross(
-                inferior[-2],
-                inferior[-1],
-                ponto
-            ) <= 0
-        ):
-
-            inferior.pop()
-
-        inferior.append(
-            ponto
-        )
-
-    superior = []
-
-    for ponto in reversed(pontos):
-
-        while (
-            len(superior) >= 2
-            and
-            cross(
-                superior[-2],
-                superior[-1],
-                ponto
-            ) <= 0
-        ):
-
-            superior.pop()
-
-        superior.append(
-            ponto
-        )
-
-    return (
-        inferior[:-1]
-        +
-        superior[:-1]
+        sx / len(pontos),
+        sy / len(pontos)
     )
 
 
 # ============================================================
-# DISTÂNCIA PONTO / LINHA
+# POLÍGONO
 # ============================================================
+
+def ordenar_contorno(
+    contorno,
+    cx,
+    cy
+):
+
+    return sorted(
+        contorno,
+        key=lambda p: math.atan2(
+            p[1] - cy,
+            p[0] - cx
+        )
+    )
+
 
 def distancia_ponto_linha(
     ponto,
@@ -789,8 +1108,7 @@ def distancia_ponto_linha(
     if dx == 0 and dy == 0:
 
         return math.sqrt(
-            (x - x1) ** 2
-            +
+            (x - x1) ** 2 +
             (y - y1) ** 2
         )
 
@@ -802,33 +1120,24 @@ def distancia_ponto_linha(
         )
         /
         (
-            dx * dx
-            +
+            dx * dx +
             dy * dy
         )
     )
 
     t = max(
         0,
-        min(
-            1,
-            t
-        )
+        min(1, t)
     )
 
     px = x1 + t * dx
     py = y1 + t * dy
 
     return math.sqrt(
-        (x - px) ** 2
-        +
+        (x - px) ** 2 +
         (y - py) ** 2
     )
 
-
-# ============================================================
-# SIMPLIFICAR POLIGONO
-# ============================================================
 
 def simplificar_poligono(
     pontos,
@@ -836,10 +1145,9 @@ def simplificar_poligono(
 ):
 
     if len(pontos) <= 3:
-
         return pontos
 
-    maior_distancia = 0
+    maior = 0
     indice = 0
 
     inicio = pontos[0]
@@ -850,18 +1158,18 @@ def simplificar_poligono(
         len(pontos) - 1
     ):
 
-        distancia = distancia_ponto_linha(
+        d = distancia_ponto_linha(
             pontos[i],
             inicio,
             fim
         )
 
-        if distancia > maior_distancia:
+        if d > maior:
 
-            maior_distancia = distancia
+            maior = d
             indice = i
 
-    if maior_distancia > epsilon:
+    if maior > epsilon:
 
         esquerda = simplificar_poligono(
             pontos[:indice + 1],
@@ -885,44 +1193,64 @@ def simplificar_poligono(
     ]
 
 
-def simplificar_hull(hull):
+def criar_poligono_contorno(
+    contorno
+):
 
-    if len(hull) < 3:
-        return hull
+    if len(contorno) < 3:
+        return contorno
 
-    pontos = (
-        hull
-        +
-        [hull[0]]
+    cx, cy = calcular_centro(
+        contorno
+    )
+
+    ordenado = ordenar_contorno(
+        contorno,
+        cx,
+        cy
     )
 
     perimetro = 0
 
     for i in range(
-        len(pontos) - 1
+        len(ordenado)
     ):
 
-        x1, y1 = pontos[i]
-        x2, y2 = pontos[i + 1]
+        x1, y1 = ordenado[i]
+
+        x2, y2 = ordenado[
+            (i + 1)
+            % len(ordenado)
+        ]
 
         perimetro += math.sqrt(
-            (x2 - x1) ** 2
-            +
+            (x2 - x1) ** 2 +
             (y2 - y1) ** 2
         )
 
     epsilon = max(
-        3,
-        perimetro * 0.03
+        1.5,
+        min(
+            5.0,
+            perimetro * 0.008
+        )
     )
 
-    simplificado = simplificar_poligono(
-        pontos,
-        epsilon
+    fechado = (
+        ordenado
+        +
+        [ordenado[0]]
+    )
+
+    simplificado = (
+        simplificar_poligono(
+            fechado,
+            epsilon
+        )
     )
 
     if (
-        simplificado
+        len(simplificado) > 1
         and
         simplificado[-1]
         ==
@@ -935,419 +1263,591 @@ def simplificar_hull(hull):
 
 
 # ============================================================
-# AREA DO POLIGONO
+# TFLITE — LANDMARK
 # ============================================================
 
-def area_poligono(pontos):
-
-    if len(pontos) < 3:
-        return 0
-
-    area = 0
-
-    for i in range(
-        len(pontos)
-    ):
-
-        x1, y1 = pontos[i]
-
-        x2, y2 = pontos[
-            (i + 1)
-            %
-            len(pontos)
-        ]
-
-        area += (
-            x1 * y2
-            -
-            x2 * y1
-        )
-
-    return abs(
-        area
-    ) / 2
-
-
-# ============================================================
-# PERFIL RADIAL
-# ============================================================
-
-def contar_picos(
-    pontos,
-    centro_x,
-    centro_y
-):
-
-    quantidade_bins = 72
-
-    perfil = [
-        0
-        for _ in range(
-            quantidade_bins
-        )
-    ]
-
-    for x, y in pontos:
-
-        dx = x - centro_x
-        dy = y - centro_y
-
-        raio = math.sqrt(
-            dx * dx
-            +
-            dy * dy
-        )
-
-        angulo = math.atan2(
-            dy,
-            dx
-        )
-
-        indice = int(
-            (
-                (
-                    angulo
-                    +
-                    math.pi
-                )
-                /
-                (
-                    2 * math.pi
-                )
-            )
-            *
-            quantidade_bins
-        )
-
-        indice %= quantidade_bins
-
-        if raio > perfil[indice]:
-
-            perfil[indice] = raio
-
-    # --------------------------------------------------------
-    # Suavização circular
-    # --------------------------------------------------------
-
-    for _ in range(2):
-
-        novo = []
-
-        for i in range(
-            quantidade_bins
-        ):
-
-            valor = (
-                perfil[
-                    (i - 2)
-                    %
-                    quantidade_bins
-                ]
-                +
-                perfil[
-                    (i - 1)
-                    %
-                    quantidade_bins
-                ]
-                +
-                perfil[i]
-                +
-                perfil[
-                    (i + 1)
-                    %
-                    quantidade_bins
-                ]
-                +
-                perfil[
-                    (i + 2)
-                    %
-                    quantidade_bins
-                ]
-            ) / 5
-
-            novo.append(
-                valor
-            )
-
-        perfil = novo
-
-    minimo = min(
-        perfil
-    )
-
-    maximo = max(
-        perfil
-    )
-
-    if maximo <= minimo:
-
-        return 0
-
-    media = sum(
-        perfil
-    ) / len(
-        perfil
-    )
-
-    limite = (
-        media
-        +
-        (
-            maximo - media
-        )
-        *
-        0.20
-    )
-
-    picos = []
-
-    for i in range(
-        quantidade_bins
-    ):
-
-        anterior = perfil[
-            (i - 1)
-            %
-            quantidade_bins
-        ]
-
-        atual = perfil[i]
-
-        proximo = perfil[
-            (i + 1)
-            %
-            quantidade_bins
-        ]
-
-        if (
-            atual > anterior
-            and
-            atual >= proximo
-            and
-            atual > limite
-        ):
-
-            picos.append(
-                i
-            )
-
-    # --------------------------------------------------------
-    # Agrupar picos próximos
-    # --------------------------------------------------------
-
-    grupos = []
-
-    for pico in picos:
-
-        if not grupos:
-
-            grupos.append(
-                [pico]
-            )
-
-            continue
-
-        ultimo = grupos[-1][-1]
-
-        if (
-            pico - ultimo
-            <= 6
-        ):
-
-            grupos[-1].append(
-                pico
-            )
-
-        else:
-
-            grupos.append(
-                [pico]
-            )
-
-    # --------------------------------------------------------
-    # Corrigir fechamento circular
-    # --------------------------------------------------------
-
-    if len(grupos) > 1:
-
-        primeiro = grupos[0][0]
-        ultimo = grupos[-1][-1]
-
-        if (
-            primeiro
-            +
-            quantidade_bins
-            -
-            ultimo
-            <= 6
-        ):
-
-            grupos[0] = (
-                grupos[-1]
-                +
-                grupos[0]
-            )
-
-            grupos.pop()
-
-    return len(
-        grupos
-    )
-
-
-# ============================================================
-# CLASSIFICAR
-# ============================================================
-
-def classificar_gesto(
-    pontos,
-    poligono,
+def recortar_mao(
+    imagem,
     componente
 ):
 
-    if not pontos:
-        return GESTO_UNKNOWN, {}
+    h, w, _ = imagem.shape
 
-    centro_x = sum(
-        x
-        for x, y in pontos
-    ) / len(pontos)
+    x = componente["x"]
+    y = componente["y"]
+    cw = componente["w"]
+    ch = componente["h"]
 
-    centro_y = sum(
-        y
-        for x, y in pontos
-    ) / len(pontos)
-
-    area_pixels = len(
-        pontos
+    margem_x = max(
+        10,
+        int(cw * 0.25)
     )
 
-    area_hull = area_poligono(
-        poligono
+    margem_y = max(
+        10,
+        int(ch * 0.25)
     )
 
-    if area_hull <= 0:
-
-        return GESTO_UNKNOWN, {}
-
-    vertices = len(
-        poligono
+    x1 = max(
+        0,
+        x - margem_x
     )
 
-    proporcao = (
-        area_pixels
-        /
-        area_hull
+    y1 = max(
+        0,
+        y - margem_y
     )
 
-    largura = componente["w"]
-    altura = componente["h"]
+    x2 = min(
+        w,
+        x + cw + margem_x
+    )
 
-    proporcao_caixa = (
-        largura
-        /
-        max(
+    y2 = min(
+        h,
+        y + ch + margem_y
+    )
+
+    crop = imagem[
+        y1:y2,
+        x1:x2
+    ]
+
+    return crop, (
+        x1,
+        y1,
+        x2,
+        y2
+    )
+
+
+def preparar_entrada_landmark(
+    crop
+):
+
+    imagem = ImageResize(
+        crop,
+        224,
+        224
+    )
+
+    entrada = imagem.astype(
+        np.float32
+    )
+
+    # O modelo full trabalha com RGB normalizado.
+    entrada = (
+        entrada - 127.5
+    ) / 127.5
+
+    entrada = entrada[
+        np.newaxis,
+        ...
+    ]
+
+    return entrada
+
+
+def ImageResize(
+    imagem,
+    largura,
+    altura
+):
+
+    # Usa ImageMagick para evitar Pillow.
+    #
+    # O crop é convertido para bytes RGB
+    # e redimensionado através de magick.
+
+    h, w, _ = imagem.shape
+
+    dados = imagem.astype(
+        np.uint8
+    ).tobytes()
+
+    processo = subprocess.run(
+        [
+            "magick",
+            "-size",
+            f"{w}x{h}",
+            "-depth",
+            "8",
+            "rgb:-",
+            "-resize",
+            f"{largura}x{altura}!",
+            "-depth",
+            "8",
+            "rgb:-"
+        ],
+        input=dados,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    esperado = (
+        largura *
+        altura *
+        3
+    )
+
+    if (
+        processo.returncode != 0
+        or
+        len(processo.stdout) < esperado
+    ):
+
+        print(
+            "❌ Falha resize TFLite"
+        )
+
+        return np.zeros(
+            (
+                altura,
+                largura,
+                3
+            ),
+            dtype=np.uint8
+        )
+
+    return np.frombuffer(
+        processo.stdout[:esperado],
+        dtype=np.uint8
+    ).reshape(
+        altura,
+        largura,
+        3
+    )
+
+
+def detectar_landmarks(
+    interpreter,
+    crop
+):
+
+    entradas = (
+        interpreter
+        .get_input_details()
+    )
+
+    entrada = entradas[0]
+
+    shape = entrada["shape"]
+
+    altura = int(
+        shape[1]
+    )
+
+    largura = int(
+        shape[2]
+    )
+
+    imagem = ImageResize(
+        crop,
+        largura,
+        altura
+    )
+
+    dtype = entrada[
+        "dtype"
+    ]
+
+    if dtype == np.float32:
+
+        tensor = (
+            imagem.astype(
+                np.float32
+            )
+            -
+            127.5
+        ) / 127.5
+
+    elif dtype == np.uint8:
+
+        tensor = imagem.astype(
+            np.uint8
+        )
+
+    else:
+
+        tensor = imagem.astype(
+            dtype
+        )
+
+    tensor = tensor[
+        np.newaxis,
+        ...
+    ]
+
+    interpreter.set_tensor(
+        entrada["index"],
+        tensor
+    )
+
+    interpreter.invoke()
+
+    saidas = (
+        interpreter
+        .get_output_details()
+    )
+
+    resultados = []
+
+    for saida in saidas:
+
+        arr = interpreter.get_tensor(
+            saida["index"]
+        )
+
+        resultados.append(
+            (
+                saida,
+                arr
+            )
+        )
+
+    # --------------------------------------------------------
+    # Procuramos uma saída contendo 63 valores.
+    # 21 landmarks x 3 coordenadas.
+    # --------------------------------------------------------
+
+    landmarks = None
+
+    for detalhe, arr in resultados:
+
+        flat = arr.reshape(-1)
+
+        if len(flat) >= 63:
+
+            # Muitas versões do modelo possuem
+            # Identity = 63 coordenadas.
+            landmarks = flat[:63]
+
+            print(
+                "LANDMARK OUTPUT:",
+                detalhe["name"],
+                arr.shape
+            )
+
+            break
+
+    if landmarks is None:
+
+        print(
+            "❌ Não encontramos saída 63"
+        )
+
+        return None
+
+    landmarks = landmarks.reshape(
+        21,
+        3
+    )
+
+    # --------------------------------------------------------
+    # O modelo retorna coordenadas no espaço do crop.
+    #
+    # Nas versões atuais do modelo full,
+    # a coordenada XY é referente ao espaço 224x224.
+    # --------------------------------------------------------
+
+    pontos = []
+
+    for lm in landmarks:
+
+        lx = float(
+            lm[0]
+        )
+
+        ly = float(
+            lm[1]
+        )
+
+        lz = float(
+            lm[2]
+        )
+
+        pontos.append(
+            (
+                lx,
+                ly,
+                lz
+            )
+        )
+
+    return pontos
+
+
+# ============================================================
+# CLASSIFICAÇÃO GEOMÉTRICA DOS LANDMARKS
+# ============================================================
+
+# Índices MediaPipe:
+#
+# 0  wrist
+# 1  thumb CMC
+# 2  thumb MCP
+# 3  thumb IP
+# 4  thumb tip
+#
+# 5  index MCP
+# 6  index PIP
+# 7  index DIP
+# 8  index tip
+#
+# 9  middle MCP
+# 10 middle PIP
+# 11 middle DIP
+# 12 middle tip
+#
+# 13 ring MCP
+# 14 ring PIP
+# 15 ring DIP
+# 16 ring tip
+#
+# 17 pinky MCP
+# 18 pinky PIP
+# 19 pinky DIP
+# 20 pinky tip
+
+
+def distancia_3d(a, b):
+
+    return math.sqrt(
+        (a[0] - b[0]) ** 2 +
+        (a[1] - b[1]) ** 2 +
+        (a[2] - b[2]) ** 2
+    )
+
+
+def angulo_3pontos(
+    a,
+    b,
+    c
+):
+
+    bax = a[0] - b[0]
+    bay = a[1] - b[1]
+    baz = a[2] - b[2]
+
+    bcx = c[0] - b[0]
+    bcy = c[1] - b[1]
+    bcz = c[2] - b[2]
+
+    produto = (
+        bax * bcx
+        +
+        bay * bcy
+        +
+        baz * bcz
+    )
+
+    norma_a = math.sqrt(
+        bax * bax +
+        bay * bay +
+        baz * baz
+    )
+
+    norma_c = math.sqrt(
+        bcx * bcx +
+        bcy * bcy +
+        bcz * bcz
+    )
+
+    if norma_a == 0 or norma_c == 0:
+        return 180
+
+    coseno = (
+        produto /
+        (norma_a * norma_c)
+    )
+
+    coseno = max(
+        -1,
+        min(
             1,
-            altura
+            coseno
         )
     )
 
-    picos = contar_picos(
-        pontos,
-        centro_x,
-        centro_y
+    return math.degrees(
+        math.acos(coseno)
     )
 
-    print()
-    print(
-        "========================================"
-    )
 
-    print(
-        "📐 ANÁLISE DO POLÍGONO"
-    )
+def classificar_landmarks(
+    landmarks
+):
 
-    print(
-        "========================================"
-    )
+    if not landmarks:
+        return GESTO_UNKNOWN, {}
 
-    print(
-        "VERTICES:",
-        vertices
-    )
+    wrist = landmarks[0]
 
-    print(
-        "AREA PIXELS:",
-        area_pixels
-    )
+    dedos = [
+        (5, 6, 7, 8),
+        (9, 10, 11, 12),
+        (13, 14, 15, 16),
+        (17, 18, 19, 20)
+    ]
 
-    print(
-        "AREA POLIGONO:",
-        round(
-            area_hull,
-            2
+    estendidos = 0
+
+    flexoes = []
+
+    for mcp, pip, dip, tip in dedos:
+
+        angulo = angulo_3pontos(
+            landmarks[mcp],
+            landmarks[pip],
+            landmarks[tip]
         )
-    )
 
-    print(
-        "SOLIDEZ:",
-        round(
-            proporcao,
-            3
+        flexoes.append(
+            angulo
         )
+
+        # Dedo aberto normalmente
+        # apresenta uma cadeia muito
+        # mais linear.
+        if angulo > 145:
+
+            estendidos += 1
+
+    # Polegar.
+    #
+    # Para FIST não precisamos exigir
+    # que ele esteja completamente fechado.
+    polegar_dist = distancia_3d(
+        landmarks[4],
+        landmarks[5]
     )
 
-    print(
-        "PROPORÇÃO CAIXA:",
-        round(
-            proporcao_caixa,
-            3
-        )
+    palma = distancia_3d(
+        landmarks[0],
+        landmarks[9]
     )
 
-    print(
-        "PICOS RADIAIS:",
-        picos
+    if palma <= 0:
+        return GESTO_UNKNOWN, {}
+
+    polegar_rel = (
+        polegar_dist /
+        palma
     )
 
     # --------------------------------------------------------
-    # CLASSIFICAÇÃO
-    #
-    # Para um punho:
-    #
-    # - poucos picos
-    # - formato compacto
-    #
-    # Para mão aberta:
-    #
-    # - mais picos
-    # - formato menos compacto
+    # FIST
     # --------------------------------------------------------
 
-    if picos <= 3:
+    # Quatro dedos recolhidos.
+    #
+    # Toleramos um dedo ambíguo.
+    if estendidos <= 1:
 
         gesto = GESTO_FIST
 
-    elif picos >= 4:
+    elif estendidos >= 3:
 
         gesto = GESTO_OPEN_PALM
 
     else:
 
-        gesto = GESTO_UNKNOWN
+        # Caso intermediário.
+        #
+        # Usa a distância média das pontas
+        # em relação ao punho.
+        pontas = [
+            landmarks[8],
+            landmarks[12],
+            landmarks[16],
+            landmarks[20]
+        ]
+
+        distancia_media = sum(
+            distancia_3d(
+                p,
+                wrist
+            )
+            for p in pontas
+        ) / 4
+
+        distancia_relativa = (
+            distancia_media /
+            palma
+        )
+
+        if distancia_relativa < 2.0:
+
+            gesto = GESTO_FIST
+
+        else:
+
+            gesto = GESTO_OPEN_PALM
+
+    print()
+    print(
+        "========================================"
+    )
+    print(
+        "🧠 LANDMARK CLASSIFIER"
+    )
+    print(
+        "========================================"
+    )
+
+    print(
+        "DEDOS ESTENDIDOS:",
+        estendidos
+    )
+
+    print(
+        "ÂNGULOS:",
+        [
+            round(v, 1)
+            for v in flexoes
+        ]
+    )
+
+    print(
+        "POLEGAR/PALMA:",
+        round(
+            polegar_rel,
+            3
+        )
+    )
+
+    print(
+        "GESTO:",
+        gesto
+    )
 
     return gesto, {
-        "vertices": vertices,
-        "area_pixels": area_pixels,
-        "area_poligono": area_hull,
-        "solidez": proporcao,
-        "proporcao_caixa": proporcao_caixa,
-        "picos": picos
+        "dedos_estendidos":
+            estendidos,
+
+        "angulos":
+            flexoes,
+
+        "polegar_rel":
+            polegar_rel
     }
 
 
 # ============================================================
-# CRIAR MÁSCARA PNG
+# POLÍGONO DA MÃO
+# ============================================================
+
+def detectar_poligono(
+    contorno
+):
+
+    return criar_poligono_contorno(
+        contorno
+    )
+
+
+# ============================================================
+# SALVAR MÁSCARA
 # ============================================================
 
 def salvar_mascara(
@@ -1376,120 +1876,153 @@ def salvar_mascara(
         stderr=subprocess.PIPE
     )
 
-    if resultado.returncode != 0:
-
-        print(
-            "❌ ERRO AO SALVAR MÁSCARA"
-        )
-
-        try:
-
-            print(
-                resultado.stderr.decode(
-                    errors="ignore"
-                )
-            )
-
-        except Exception:
-            pass
-
-        return False
-
-    return True
+    return (
+        resultado.returncode == 0
+    )
 
 
 # ============================================================
-# DESENHAR POLÍGONO
+# DEBUG
 # ============================================================
 
-def pintar_poligono(
+def pintar_debug(
     arquivo_original,
-    largura,
-    altura,
+    componentes,
+    principal,
+    contorno,
     poligono,
     gesto,
     metricas
 ):
 
-    if len(poligono) < 3:
+    cmd = [
+        "magick",
+        arquivo_original,
+        "-resize",
+        f"{TAMANHO_MAXIMO}x{TAMANHO_MAXIMO}",
+        "-pointsize",
+        "12"
+    ]
 
-        print(
-            "❌ POLÍGONO INVÁLIDO"
+    desenhos = []
+
+    for idx, comp in enumerate(
+        componentes,
+        start=1
+    ):
+
+        x = comp["x"]
+        y = comp["y"]
+        w = comp["w"]
+        h = comp["h"]
+
+        desenhos.append(
+            f"fill none stroke yellow "
+            f"stroke-width 1 rectangle "
+            f"{x},{y} {x+w},{y+h}"
         )
 
-        return False
+        desenhos.append(
+            f"fill yellow stroke none "
+            f"text {x+2},{y+13} '{idx}'"
+        )
 
-    pontos_texto = " ".join(
-        f"{x},{y}"
-        for x, y in poligono
+    if principal:
+
+        x = principal["x"]
+        y = principal["y"]
+        w = principal["w"]
+        h = principal["h"]
+
+        desenhos.append(
+            f"fill none stroke blue "
+            f"stroke-width 3 rectangle "
+            f"{x},{y} {x+w},{y+h}"
+        )
+
+    if len(contorno) >= 3:
+
+        pontos = " ".join(
+            f"{x},{y}"
+            for x, y in contorno
+        )
+
+        desenhos.append(
+            f"fill none stroke red "
+            f"stroke-width 1 "
+            f"polygon {pontos}"
+        )
+
+    if len(poligono) >= 3:
+
+        pontos = " ".join(
+            f"{x},{y}"
+            for x, y in poligono
+        )
+
+        desenhos.append(
+            f"fill none stroke lime "
+            f"stroke-width 2 "
+            f"polygon {pontos}"
+        )
+
+        for i, (x, y) in enumerate(
+            poligono
+        ):
+
+            desenhos.append(
+                f"fill lime stroke black "
+                f"stroke-width 1 circle "
+                f"{x},{y} {x+3},{y}"
+            )
+
+            desenhos.append(
+                f"fill white stroke black "
+                f"stroke-width 1 "
+                f"text {x+4},{y-4} '{i}'"
+            )
+
+    cx = metricas.get(
+        "centro_x"
     )
 
-    comando_polygon = (
-        "polygon "
-        +
-        pontos_texto
+    cy = metricas.get(
+        "centro_y"
     )
+
+    if cx is not None:
+
+        desenhos.append(
+            f"fill magenta stroke black "
+            f"stroke-width 2 circle "
+            f"{int(cx)},{int(cy)} "
+            f"{int(cx)+5},{int(cy)}"
+        )
 
     texto = (
-        f"GESTO: {gesto}"
-        f" | vertices={metricas.get('vertices', 0)}"
-        f" | picos={metricas.get('picos', 0)}"
+        f"{gesto} "
+        f"dedos={metricas.get('dedos_estendidos', '-')}"
+    )
+
+    desenhos.append(
+        f"fill white stroke black "
+        f"stroke-width 2 "
+        f"text 8,18 '{texto}'"
+    )
+
+    for desenho in desenhos:
+
+        cmd.extend([
+            "-draw",
+            desenho
+        ])
+
+    cmd.append(
+        ARQUIVO_DEBUG
     )
 
     resultado = subprocess.run(
-        [
-            "magick",
-
-            arquivo_original,
-
-            "-resize",
-            f"{TAMANHO_MAXIMO}x{TAMANHO_MAXIMO}",
-
-            # ----------------------------------------------
-            # PREENCHIMENTO
-            # ----------------------------------------------
-
-            "-fill",
-            "rgba(255,0,0,0.25)",
-
-            # ----------------------------------------------
-            # CONTORNO
-            # ----------------------------------------------
-
-            "-stroke",
-            "#00ff00",
-
-            "-strokewidth",
-            "3",
-
-            "-draw",
-            comando_polygon,
-
-            # ----------------------------------------------
-            # TEXTO
-            # ----------------------------------------------
-
-            "-fill",
-            "white",
-
-            "-stroke",
-            "black",
-
-            "-strokewidth",
-            "2",
-
-            "-pointsize",
-            "16",
-
-            "-gravity",
-            "northwest",
-
-            "-annotate",
-            "+8+8",
-            texto,
-
-            ARQUIVO_DEBUG
-        ],
+        cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
@@ -1497,9 +2030,8 @@ def pintar_poligono(
 
     if resultado.returncode != 0:
 
-        print()
         print(
-            "❌ ERRO AO PINTAR POLÍGONO"
+            "❌ ERRO DEBUG"
         )
 
         print(
@@ -1512,20 +2044,20 @@ def pintar_poligono(
 
 
 # ============================================================
-# RECONHECER GESTO
+# RECONHECER
 # ============================================================
 
-def reconhecer_gesto(arquivo):
+def reconhecer_gesto(
+    arquivo
+):
 
     print()
     print(
         "========================================"
     )
-
     print(
-        "🖐️ DETECTOR DE GESTO"
+        "🖐️ DETECTOR DE GESTO TFLITE"
     )
-
     print(
         "========================================"
     )
@@ -1536,7 +2068,15 @@ def reconhecer_gesto(arquivo):
     )
 
     # --------------------------------------------------------
-    # FOTO EXISTE?
+    # MODELOS
+    # --------------------------------------------------------
+
+    if not baixar_modelos():
+
+        return GESTO_UNKNOWN
+
+    # --------------------------------------------------------
+    # ARQUIVO
     # --------------------------------------------------------
 
     if not os.path.exists(
@@ -1548,10 +2088,6 @@ def reconhecer_gesto(arquivo):
         )
 
         return GESTO_UNKNOWN
-
-    # --------------------------------------------------------
-    # TAMANHO
-    # --------------------------------------------------------
 
     tamanho = obter_tamanho_imagem(
         arquivo
@@ -1570,10 +2106,6 @@ def reconhecer_gesto(arquivo):
         altura
     )
 
-    # --------------------------------------------------------
-    # RGB
-    # --------------------------------------------------------
-
     dados = carregar_rgb(
         arquivo,
         largura,
@@ -1583,6 +2115,12 @@ def reconhecer_gesto(arquivo):
     if dados is None:
 
         return GESTO_UNKNOWN
+
+    imagem = rgb_para_numpy(
+        dados,
+        largura,
+        altura
+    )
 
     # --------------------------------------------------------
     # MÁSCARA
@@ -1594,20 +2132,10 @@ def reconhecer_gesto(arquivo):
         altura
     )
 
-    # --------------------------------------------------------
-    # SALVAR MÁSCARA
-    # --------------------------------------------------------
-
     salvar_mascara(
         mascara,
         largura,
         altura
-    )
-
-    print()
-    print(
-        "MÁSCARA:",
-        ARQUIVO_MASCARA
     )
 
     # --------------------------------------------------------
@@ -1622,46 +2150,17 @@ def reconhecer_gesto(arquivo):
 
     print()
     print(
-        "COMPONENTES ENCONTRADOS:",
+        "COMPONENTES:",
         len(componentes)
     )
 
     if not componentes:
 
         print(
-            "❌ NENHUM COMPONENTE ENCONTRADO"
+            "❌ NENHUM COMPONENTE"
         )
 
         return GESTO_UNKNOWN
-
-    # --------------------------------------------------------
-    # MOSTRAR COMPONENTES
-    # --------------------------------------------------------
-
-    for indice, componente in enumerate(
-        componentes,
-        start=1
-    ):
-
-        print(
-            "COMPONENTE",
-            indice,
-            "|",
-            "AREA:",
-            componente["area"],
-            "|",
-            "BOX:",
-            (
-                componente["x"],
-                componente["y"],
-                componente["w"],
-                componente["h"]
-            )
-        )
-
-    # --------------------------------------------------------
-    # PRINCIPAL
-    # --------------------------------------------------------
 
     principal = escolher_componente(
         componentes,
@@ -1673,115 +2172,171 @@ def reconhecer_gesto(arquivo):
 
         return GESTO_UNKNOWN
 
+    pontos = principal[
+        "pontos"
+    ]
+
     # --------------------------------------------------------
-    # JUNTAR PARTES DA MÃO
+    # CONTORNO
     # --------------------------------------------------------
 
-    pontos = juntar_componentes(
-        componentes,
-        principal
+    contorno = extrair_contorno(
+        pontos,
+        largura,
+        altura
     )
 
-    if len(pontos) < 30:
+    if len(contorno) < 10:
 
         print(
-            "❌ POUCOS PIXELS PARA ANALISAR"
+            "❌ CONTORNO INVÁLIDO"
         )
 
         return GESTO_UNKNOWN
 
+    poligono = detectar_poligono(
+        contorno
+    )
+
     # --------------------------------------------------------
-    # POLÍGONO
+    # TFLITE LANDMARK
     # --------------------------------------------------------
 
-    hull = convex_hull(
+    gesto = GESTO_UNKNOWN
+    metricas = {}
+
+    try:
+
+        landmark_interpreter = criar_interpreter(
+            MODELO_LANDMARK
+        )
+
+        crop, box = recortar_mao(
+            imagem,
+            principal
+        )
+
+        print()
+        print(
+            "CROP DA MÃO:",
+            box
+        )
+
+        landmarks = detectar_landmarks(
+            landmark_interpreter,
+            crop
+        )
+
+        if landmarks is not None:
+
+            gesto, metricas_landmark = (
+                classificar_landmarks(
+                    landmarks
+                )
+            )
+
+            metricas.update(
+                metricas_landmark
+            )
+
+    except Exception as e:
+
+        print()
+        print(
+            "⚠️ ERRO TFLITE LANDMARK"
+        )
+
+        print(
+            type(e).__name__,
+            e
+        )
+
+        gesto = GESTO_UNKNOWN
+
+    # --------------------------------------------------------
+    # MÉTRICAS DA MÁSCARA
+    # --------------------------------------------------------
+
+    cx, cy = calcular_centro(
         pontos
     )
 
-    if len(hull) < 3:
+    area = len(
+        pontos
+    )
 
-        print(
-            "❌ NÃO FOI POSSÍVEL CRIAR POLÍGONO"
+    ocupacao = (
+        area /
+        max(
+            1,
+            principal["w"]
+            *
+            principal["h"]
         )
+    )
 
-        return GESTO_UNKNOWN
+    metricas[
+        "centro_x"
+    ] = cx
+
+    metricas[
+        "centro_y"
+    ] = cy
+
+    metricas[
+        "pixels"
+    ] = area
+
+    metricas[
+        "ocupacao"
+    ] = ocupacao
+
+    metricas[
+        "contorno"
+    ] = len(contorno)
+
+    metricas[
+        "vertices"
+    ] = len(poligono)
+
+    # --------------------------------------------------------
+    # DEBUG
+    # --------------------------------------------------------
+
+    pintar_debug(
+        arquivo_original=arquivo,
+        componentes=componentes,
+        principal=principal,
+        contorno=contorno,
+        poligono=poligono,
+        gesto=gesto,
+        metricas=metricas
+    )
 
     print()
     print(
-        "POLÍGONO BRUTO:",
-        len(hull),
-        "vértices"
-    )
-
-    # --------------------------------------------------------
-    # SIMPLIFICAR
-    # --------------------------------------------------------
-
-    poligono = simplificar_hull(
-        hull
+        "========================================"
     )
 
     print(
-        "POLÍGONO SIMPLIFICADO:",
+        "🤖 RESULTADO:",
+        gesto
+    )
+
+    print(
+        "POLÍGONO:",
         len(poligono),
         "vértices"
     )
 
-    # --------------------------------------------------------
-    # CLASSIFICAR
-    # --------------------------------------------------------
-
-    gesto, metricas = classificar_gesto(
-        pontos,
-        poligono,
-        principal
-    )
-
-    # --------------------------------------------------------
-    # PINTAR
-    # --------------------------------------------------------
-
-    pintado = pintar_poligono(
-        arquivo,
-        largura,
-        altura,
-        poligono,
-        gesto,
-        metricas
-    )
-
-    if pintado:
-
-        print()
-        print(
-            "🎨 POLÍGONO PINTADO!"
-        )
-
-        print(
-            "ARQUIVO:",
-            ARQUIVO_DEBUG
-        )
-
-    # --------------------------------------------------------
-    # RESULTADO
-    # --------------------------------------------------------
-
-    print()
     print(
-        "========================================"
+        "MÁSCARA:",
+        ARQUIVO_MASCARA
     )
 
     print(
-        "🤖 RESULTADO"
-    )
-
-    print(
-        "========================================"
-    )
-
-    print(
-        "GESTO:",
-        gesto
+        "DEBUG:",
+        ARQUIVO_DEBUG
     )
 
     print(
@@ -1792,19 +2347,28 @@ def reconhecer_gesto(arquivo):
 
 
 # ============================================================
-# TESTE DIRETO
+# MAIN
 # ============================================================
 
 if __name__ == "__main__":
 
-    foto = "robot_foto.jpg"
+    if len(sys.argv) > 1:
 
-    gesto = reconhecer_gesto(
+        foto = sys.argv[1]
+
+    else:
+
+        foto = os.path.join(
+            PASTA_PROJETO,
+            "robot_foto.jpg"
+        )
+
+    resultado = reconhecer_gesto(
         foto
     )
 
     print()
     print(
         "RESULTADO FINAL:",
-        gesto
+        resultado
     )

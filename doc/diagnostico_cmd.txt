@@ -1,0 +1,87 @@
+echo "===== DIAGNOSTICO GESTOS / TERMUX =====" > diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== SISTEMA =====" >> diagnostico.txt
+uname -a >> diagnostico.txt 2>&1
+uname -m >> diagnostico.txt 2>&1
+getprop ro.product.cpu.abi >> diagnostico.txt 2>&1
+getprop ro.product.cpu.abilist >> diagnostico.txt 2>&1
+getprop ro.product.cpu.abilist64 >> diagnostico.txt 2>&1
+getprop ro.build.version.release >> diagnostico.txt 2>&1
+getprop ro.product.model >> diagnostico.txt 2>&1
+
+echo "" >> diagnostico.txt
+echo "===== PYTHON =====" >> diagnostico.txt
+python --version >> diagnostico.txt 2>&1
+python -c "import sys,platform,struct; print('Python:',sys.version); print('Platform:',sys.platform); print('Machine:',platform.machine()); print('Bits:',struct.calcsize('P')*8)" >> diagnostico.txt 2>&1
+python -m pip --version >> diagnostico.txt 2>&1
+
+echo "" >> diagnostico.txt
+echo "===== PIP WHEELS =====" >> diagnostico.txt
+python -m pip debug --verbose 2>&1 | grep -E "Compatible tags:|android_|manylinux|linux_arm|linux_aarch|musllinux" | head -80 >> diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== TERMUX REPOSITORIO =====" >> diagnostico.txt
+apt --version >> diagnostico.txt 2>&1
+grep -R "^deb " "$PREFIX/etc/apt/sources.list.d" "$PREFIX/etc/apt/sources.list" 2>/dev/null >> diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== PACOTES VISION / IMAGE =====" >> diagnostico.txt
+pkg search opencv >> diagnostico.txt 2>&1
+pkg search libvxl >> diagnostico.txt 2>&1
+pkg search libvips >> diagnostico.txt 2>&1
+pkg search gmic >> diagnostico.txt 2>&1
+pkg search freeimage >> diagnostico.txt 2>&1
+pkg search leptonica >> diagnostico.txt 2>&1
+pkg search imagemagick >> diagnostico.txt 2>&1
+pkg search graphicsmagick >> diagnostico.txt 2>&1
+
+echo "" >> diagnostico.txt
+echo "===== PACOTES ML / AI =====" >> diagnostico.txt
+pkg search numpy >> diagnostico.txt 2>&1
+pkg search onnx >> diagnostico.txt 2>&1
+pkg search "onnxruntime" >> diagnostico.txt 2>&1
+pkg search tflite >> diagnostico.txt 2>&1
+pkg search tensorflow >> diagnostico.txt 2>&1
+pkg search torch >> diagnostico.txt 2>&1
+pkg search pytorch >> diagnostico.txt 2>&1
+pkg search armnn >> diagnostico.txt 2>&1
+pkg search "machine learning" >> diagnostico.txt 2>&1
+
+echo "" >> diagnostico.txt
+echo "===== PACOTES PYTHON RELEVANTES =====" >> diagnostico.txt
+pkg search python 2>/dev/null | grep -Ei "numpy|opencv|vision|image|vxl|vips|onnx|tensorflow|tflite|torch|pytorch|machine|learn|cv" >> diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== PACOTES INSTALADOS RELEVANTES =====" >> diagnostico.txt
+pkg list-installed 2>/dev/null | grep -Ei "python|numpy|opencv|vxl|vips|image|graphics|gmic|leptonica|onnx|tensorflow|tflite|torch|pytorch|ml" >> diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== BIBLIOTECAS NATIVAS =====" >> diagnostico.txt
+find "$PREFIX/lib" -maxdepth 1 -type f 2>/dev/null | grep -Ei "opencv|vxl|vips|onnx|tensorflow|tflite|torch|image|vision|gmic|leptonica" | sort >> diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== HEADERS =====" >> diagnostico.txt
+find "$PREFIX/include" -maxdepth 2 2>/dev/null | grep -Ei "opencv|vxl|vips|onnx|tensorflow|tflite|torch|vision|gmic|leptonica" | head -100 >> diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== COMANDOS DISPONIVEIS =====" >> diagnostico.txt
+command -v magick >> diagnostico.txt 2>&1
+command -v convert >> diagnostico.txt 2>&1
+command -v vips >> diagnostico.txt 2>&1
+command -v gmic >> diagnostico.txt 2>&1
+command -v ffmpeg >> diagnostico.txt 2>&1
+command -v python >> diagnostico.txt 2>&1
+
+echo "" >> diagnostico.txt
+echo "===== MEMORIA =====" >> diagnostico.txt
+cat /proc/meminfo 2>/dev/null | head -20 >> diagnostico.txt
+
+echo "" >> diagnostico.txt
+echo "===== ARMAZENAMENTO =====" >> diagnostico.txt
+df -h >> diagnostico.txt 2>&1
+
+echo "" >> diagnostico.txt
+echo "===== FIM =====" >> diagnostico.txt
+
+cat diagnostico.txt
