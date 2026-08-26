@@ -2,346 +2,625 @@
 <html>
 
 <head>
+
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>ROBOT</title>
+
     <style>
         html,
         body {
+
             background: black;
+
             margin: 0;
             padding: 0;
+
             width: 100%;
             height: 100%;
+
         }
+
 
         body {
+
             color: white;
+
             font-family: Arial, sans-serif;
+
             text-align: center;
+
         }
+
 
         .robot {
+
             display: block;
+
             width: 100%;
+
             padding-top: 30px;
+
         }
+
+
+        /* ==========================================
+           ROSTO
+        ========================================== */
 
         .face {
+
             display: block;
+
             width: 280px;
             height: 210px;
+
             margin: 30px auto 0;
+
             border: 3px solid cyan;
+
             border-radius: 45px;
+
             background: black;
+
         }
+
+
+        /* ==========================================
+           OLHOS
+        ========================================== */
 
         .eyes {
+
             display: block;
+
             width: 190px;
+
             margin: 0 auto;
+
             padding-top: 45px;
+
             white-space: nowrap;
+
         }
+
 
         .eye {
+
             display: inline-block;
+
             width: 45px;
             height: 45px;
+
             margin-left: 15px;
             margin-right: 15px;
+
             background: cyan;
+
             border-radius: 50%;
-            transition: height 0.08s, margin-top 0.08s;
+
         }
+
 
         .eye.blink {
+
             height: 4px;
+
             margin-top: 41px;
+
         }
+
+
+        /* ==========================================
+           BOCA
+        ========================================== */
 
         .mouth {
+
             display: block;
+
             width: 110px;
             height: 10px;
+
             margin: 35px auto 0;
+
             background: cyan;
+
             border-radius: 8px;
+
         }
 
+
+        /* ==========================================
+           STATUS
+        ========================================== */
+
         .status {
+
             display: block;
+
+            width: 100%;
+
             margin-top: 20px;
+
             color: white;
+
             font-size: 16px;
+
+            line-height: 22px;
+
             min-height: 22px;
+
+        }
+
+
+        /* ==========================================
+           CAIXA DO GESTO
+        ========================================== */
+
+        .gesture-box {
+
+            display: block;
+
+            width: 280px;
+
+            margin: 12px auto 0;
+
+            padding: 12px 10px;
+
+            border: 2px solid cyan;
+
+            background: black;
+
+            color: cyan;
+
+            font-size: 17px;
+
+            font-weight: bold;
+
+            line-height: 22px;
+
+            text-align: center;
+
+            box-sizing: border-box;
+
+        }
+
+
+        /* ==========================================
+           TEXTO DO GESTO
+        ========================================== */
+
+        .gesture {
+
+            display: block;
+
+            width: 100%;
+
+            white-space: normal;
+
         }
     </style>
+
 </head>
+
 
 <body>
 
+
     <span class="robot">
+
+
+        <!-- ======================================
+             ROSTO DO ROBÔ
+        ====================================== -->
+
         <span class="face">
+
+
             <span class="eyes">
-                <span class="eye" id="eye1"></span>
-                <span class="eye" id="eye2"></span>
+
+                <span class="eye" id="eye1">
+                </span>
+
+
+                <span class="eye" id="eye2">
+                </span>
+
             </span>
+
+
             <span class="mouth"></span>
+
+
         </span>
 
-        <span class="status">
-            <span id="status">AGUARDANDO PYTHON</span>
-            <span id="gesture" class="gesture">GESTO: AGUARDANDO...</span>
+
+        <!-- ======================================
+             STATUS
+        ====================================== -->
+
+        <span class="status" id="status">
+
+            AGUARDANDO PYTHON
+
         </span>
+
+
+        <!-- ======================================
+             CAIXA DO GESTO
+        ====================================== -->
+
+        <span class="gesture-box">
+
+            <span id="gesture" class="gesture">
+
+                GESTO: AGUARDANDO...
+
+            </span>
+
+        </span>
+
+
     </span>
+
 
     <script>
 
-        console.log("ROBOT HTML INICIADO");
 
-        /*
-        ==================================================
-        PYTHON -> JAVASCRIPT
-        ==================================================
-        */
+        console.log(
+            "ROBOT HTML INICIADO"
+        );
+
+
+        /* =========================================
+           PYTHON -> JAVASCRIPT
+        ========================================= */
 
         window.robotEvent = function (command) {
 
-            console.log("PYTHON -> JAVASCRIPT:", command);
 
-            command = String(command).toUpperCase();
+            console.log(
+                "PYTHON -> JAVASCRIPT:",
+                command
+            );
 
-            // ----------------------------------------------
-            // GESTO: PUNHO
-            // ----------------------------------------------
+
+            command = String(
+                command
+            ).toUpperCase();
+
+
+            /* =====================================
+               PUNHO
+            ===================================== */
 
             if (command === "FIST") {
 
-                showGesture("✊ PUNHO DETECTADO");
+                showGesture(
+                    "✊ PUNHO DETECTADO"
+                );
 
                 return "FIST OK";
+
             }
 
-            // ----------------------------------------------
-            // GESTO: MÃO ABERTA
-            // ----------------------------------------------
+
+            /* =====================================
+               MÃO ABERTA
+            ===================================== */
 
             if (command === "OPEN_PALM") {
 
-                showGesture("🖐️ MÃO ABERTA DETECTADA");
+                showGesture(
+                    "🖐 MÃO ABERTA DETECTADA"
+                );
 
                 return "OPEN PALM OK";
+
             }
 
-            // ----------------------------------------------
-            // GESTO DESCONHECIDO
-            // ----------------------------------------------
+
+            /* =====================================
+               DESCONHECIDO
+            ===================================== */
 
             if (command === "UNKNOWN") {
 
-                showGesture("❓ GESTO NÃO RECONHECIDO");
+                showGesture(
+                    "❓ GESTO NÃO RECONHECIDO"
+                );
 
                 return "UNKNOWN OK";
+
             }
 
-            // ----------------------------------------------
-            // BLINK
-            // ----------------------------------------------
+
+            /* =====================================
+               BLINK
+            ===================================== */
 
             if (command === "BLINK") {
 
                 blink();
 
                 return "BLINK OK";
+
             }
 
-            // ----------------------------------------------
-            // FECHAR OLHOS
-            // ----------------------------------------------
+
+            /* =====================================
+               FECHAR OLHOS
+            ===================================== */
 
             if (command === "CLOSE_EYES") {
 
                 closeEyes();
 
                 return "EYES CLOSED";
+
             }
 
-            // ----------------------------------------------
-            // ABRIR OLHOS
-            // ----------------------------------------------
+
+            /* =====================================
+               ABRIR OLHOS
+            ===================================== */
 
             if (command === "OPEN_EYES") {
 
                 openEyes();
 
                 return "EYES OPEN";
+
             }
 
-            // ----------------------------------------------
-            // DOIS BLINKS
-            // ----------------------------------------------
+
+            /* =====================================
+               DOUBLE BLINK
+            ===================================== */
 
             if (command === "DOUBLE_BLINK") {
 
                 doubleBlink();
 
                 return "DOUBLE BLINK OK";
+
             }
 
-            console.log("COMANDO DESCONHECIDO:", command);
+
+            console.log(
+                "COMANDO DESCONHECIDO:",
+                command
+            );
+
 
             return "UNKNOWN";
+
         };
 
 
-        /*
-        ==================================================
-        PEGAR ELEMENTOS
-        ==================================================
-        */
+        /* =========================================
+           PEGAR ELEMENTOS
+        ========================================= */
 
-        function getEyes() {
+        function getElements() {
 
             return {
-                eye1: document.getElementById("eye1"),
-                eye2: document.getElementById("eye2"),
-                status: document.getElementById("status")
+
+                eye1:
+                    document.getElementById(
+                        "eye1"
+                    ),
+
+                eye2:
+                    document.getElementById(
+                        "eye2"
+                    ),
+
+                status:
+                    document.getElementById(
+                        "status"
+                    ),
+
+                gesture:
+                    document.getElementById(
+                        "gesture"
+                    )
+
             };
+
         }
 
 
-        /*
-        ==================================================
-        MOSTRAR GESTO
-        ==================================================
-        */
+        /* =========================================
+           MOSTRAR GESTO
+        ========================================= */
 
         function showGesture(texto) {
 
-            const eyes = getEyes();
 
-            eyes.gesture.innerText =
+            var elements =
+                getElements();
+
+
+            if (!elements.gesture) {
+
+                console.log(
+                    "ERRO: elemento gesture não encontrado"
+                );
+
+                return;
+
+            }
+
+
+            elements.gesture.innerHTML =
                 "GESTO: " + texto;
 
+
             console.log(
-                "🤖 GESTO RECONHECIDO:",
+                "GESTO RECONHECIDO:",
                 texto
             );
+
         }
 
 
-        /*
-        ==================================================
-        FECHAR OLHOS
-        ==================================================
-        */
+        /* =========================================
+           FECHAR OLHOS
+        ========================================= */
 
         function closeEyes() {
 
-            const eyes = getEyes();
 
-            console.log("👁️ OLHOS FECHADOS");
+            var elements =
+                getElements();
 
-            eyes.eye1.classList.add("blink");
-            eyes.eye2.classList.add("blink");
 
-            eyes.status.innerText = "📷 TIRANDO FOTO...";
+            console.log(
+                "OLHOS FECHADOS"
+            );
+
+
+            elements.eye1.classList.add(
+                "blink"
+            );
+
+
+            elements.eye2.classList.add(
+                "blink"
+            );
+
+
+            elements.status.innerHTML =
+                "📷 TIRANDO FOTO...";
+
         }
 
 
-        /*
-        ==================================================
-        ABRIR OLHOS
-        ==================================================
-        */
+        /* =========================================
+           ABRIR OLHOS
+        ========================================= */
 
         function openEyes() {
 
-            const eyes = getEyes();
 
-            eyes.eye1.classList.remove("blink");
-            eyes.eye2.classList.remove("blink");
+            var elements =
+                getElements();
 
-            eyes.status.innerText = "AGUARDANDO PYTHON";
 
-            console.log("👁️ OLHOS ABERTOS");
+            elements.eye1.classList.remove(
+                "blink"
+            );
+
+
+            elements.eye2.classList.remove(
+                "blink"
+            );
+
+
+            elements.status.innerHTML =
+                "AGUARDANDO PYTHON";
+
+
+            console.log(
+                "OLHOS ABERTOS"
+            );
+
         }
 
 
-        /*
-        ==================================================
-        BLINK
-        ==================================================
-        */
+        /* =========================================
+           BLINK
+        ========================================= */
 
         function blink() {
 
-            const eyes = getEyes();
+
+            var elements =
+                getElements();
+
 
             console.log(
-                "👁️ BLINK"
+                "BLINK"
             );
 
-            eyes.eye1.classList.add(
+
+            elements.eye1.classList.add(
                 "blink"
             );
 
-            eyes.eye2.classList.add(
+
+            elements.eye2.classList.add(
                 "blink"
             );
+
 
             setTimeout(
                 function () {
 
-                    eyes.eye1.classList.remove(
+
+                    elements.eye1.classList.remove(
                         "blink"
                     );
 
-                    eyes.eye2.classList.remove(
+
+                    elements.eye2.classList.remove(
                         "blink"
                     );
+
 
                     console.log(
                         "BLINK FINALIZADO"
                     );
 
+
                 },
                 180
             );
+
         }
 
 
-        /*
-        ==================================================
-        DOUBLE BLINK
-        ==================================================
-        */
+        /* =========================================
+           DOUBLE BLINK
+        ========================================= */
 
         function doubleBlink() {
 
-            console.log("👁️👁️ DOUBLE BLINK");
+
+            console.log(
+                "DOUBLE BLINK"
+            );
+
 
             blink();
 
-            setTimeout(function () {
 
-                blink();
+            setTimeout(
+                function () {
 
-            }, 350);
+                    blink();
+
+                },
+                350
+            );
+
         }
 
 
-        /*
-        ==================================================
-        READY
-        ==================================================
-        */
+        /* =========================================
+           READY
+        ========================================= */
 
-        console.log("robotEvent:", typeof window.robotEvent);
+        console.log(
+            "robotEvent:",
+            typeof window.robotEvent
+        );
+
 
     </script>
+
 
 </body>
 

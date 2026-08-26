@@ -264,6 +264,30 @@ def enviar_comando(webview, comando):
 
 
 # ============================================================
+# ESTEIRA DE AÇÕES
+# ============================================================
+
+def enviar_acao(webview, acao):
+
+    comando = "ACTION:" + str(acao).upper()
+
+    print()
+    print("========================================")
+    print("🤖 ESTEIRA DE AÇÃO")
+    print("========================================")
+
+    print(
+        "AÇÃO:",
+        acao
+    )
+
+    enviar_comando(
+        webview,
+        comando
+    )
+
+
+# ============================================================
 # FOTO DO ROBÔ
 # ============================================================
 
@@ -275,11 +299,29 @@ def executar_foto(webview):
     print("########################################")
 
     # ----------------------------------------
+    # PREPARANDO
+    # ----------------------------------------
+
+    enviar_acao(
+        webview,
+        "PREPARANDO"
+    )
+
+    time.sleep(
+        0.10
+    )
+
+    # ----------------------------------------
     # FECHAR OLHOS
     # ----------------------------------------
 
     print(
         "👁️ FECHANDO OLHOS..."
+    )
+
+    enviar_acao(
+        webview,
+        "FECHANDO_OLHOS"
     )
 
     enviar_comando(
@@ -297,11 +339,29 @@ def executar_foto(webview):
     )
 
     # ----------------------------------------
-    # FOTO
+    # PROCURANDO CAMERA
+    # ----------------------------------------
+
+    enviar_acao(
+        webview,
+        "PROCURANDO_CAMERA"
+    )
+
+    time.sleep(
+        0.05
+    )
+
+    # ----------------------------------------
+    # CAMERA
     # ----------------------------------------
 
     print(
         "📷 INICIANDO FOTO..."
+    )
+
+    enviar_acao(
+        webview,
+        "TIRANDO_FOTO"
     )
 
     foto_ok = tirar_foto()
@@ -317,8 +377,17 @@ def executar_foto(webview):
             "📸 FOTO TERMINOU"
         )
 
+        enviar_acao(
+            webview,
+            "FOTO_CONCLUIDA"
+        )
+
+        time.sleep(
+            0.10
+        )
+
         # ====================================
-        # RECONHECER GESTO
+        # RECONHECIMENTO DE GESTO
         # ====================================
 
         print()
@@ -334,8 +403,30 @@ def executar_foto(webview):
             "########################################"
         )
 
+        # ------------------------------------
+        # ANALISANDO
+        # ------------------------------------
+
+        enviar_acao(
+            webview,
+            "ANALISANDO_FOTO"
+        )
+
+        time.sleep(
+            0.10
+        )
+
         print(
             "🖐️ ANALISANDO FOTO..."
+        )
+
+        # ------------------------------------
+        # PENSANDO
+        # ------------------------------------
+
+        enviar_acao(
+            webview,
+            "PENSANDO"
         )
 
         try:
@@ -351,6 +442,15 @@ def executar_foto(webview):
 
             print(
                 gesto
+            )
+
+            # --------------------------------
+            # GESTO RECONHECIDO
+            # --------------------------------
+
+            enviar_acao(
+                webview,
+                "GESTO_DETECTADO"
             )
 
         except Exception as e:
@@ -372,6 +472,11 @@ def executar_foto(webview):
 
             gesto = "UNKNOWN"
 
+            enviar_acao(
+                webview,
+                "ERRO_RECONHECIMENTO"
+            )
+
         # ====================================
         # ENVIAR GESTO PARA JAVASCRIPT
         # ====================================
@@ -379,6 +484,11 @@ def executar_foto(webview):
         print()
         print(
             "📡 ENVIANDO GESTO PARA JAVASCRIPT..."
+        )
+
+        enviar_acao(
+            webview,
+            "ENVIANDO_RESULTADO"
         )
 
         enviar_comando(
@@ -395,9 +505,27 @@ def executar_foto(webview):
             "👁️ PISCANDO DUAS VEZES..."
         )
 
+        enviar_acao(
+            webview,
+            "PISCANDO"
+        )
+
         enviar_comando(
             webview,
             "DOUBLE_BLINK"
+        )
+
+        # ====================================
+        # FINALIZADO
+        # ====================================
+
+        time.sleep(
+            0.10
+        )
+
+        enviar_acao(
+            webview,
+            "CONCLUIDO"
         )
 
     else:
@@ -407,6 +535,11 @@ def executar_foto(webview):
             "❌ FOTO FALHOU"
         )
 
+        enviar_acao(
+            webview,
+            "FALHA_NA_FOTO"
+        )
+
         print(
             "👁️ ABRINDO OLHOS..."
         )
@@ -414,6 +547,11 @@ def executar_foto(webview):
         enviar_comando(
             webview,
             "OPEN_EYES"
+        )
+
+        enviar_acao(
+            webview,
+            "PRONTO"
         )
 
 
@@ -665,6 +803,15 @@ def main():
 
                         print(
                             "👆 TOQUE PARA TIRAR FOTO"
+                        )
+
+                        # ------------------------------------
+                        # ESTADO INICIAL DA ESTEIRA
+                        # ------------------------------------
+
+                        enviar_acao(
+                            webview,
+                            "PRONTO"
                         )
 
                         print()
